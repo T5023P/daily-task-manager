@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { format, addDays, startOfToday } from 'date-fns';
-import { FiCopy, FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp, FiLogOut } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   getTasksForDate, 
   copyUnfinishedTasksToToday,
   getLongTermOrders
 } from '../lib/taskService';
+import { auth, signInWithGoogle, logOut, onAuthStateChanged } from '../lib/auth';
+import type { User } from 'firebase/auth';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import TaskSection from '../components/TaskSection';
@@ -16,7 +18,6 @@ import PaymentSection from '../components/PaymentSection';
 import LongTermOrdersSection from '../components/LongTermOrdersSection';
 import AddTaskModal from '../components/AddTaskModal';
 import DateNavigator from '../components/DateNavigator';
-import LoginPage from '../components/LoginPage';
 
 export default function DailyTaskManager() {
   const [mounted, setMounted] = useState(false);
@@ -39,22 +40,38 @@ export default function DailyTaskManager() {
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [pendingPrintType, setPendingPrintType] = useState<string | null>(null);
   const [includeDescriptions, setIncludeDescriptions] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [isPrintDropdownOpen, setIsPrintDropdownOpen] = useState(false);
   const [pendingPrintFormat, setPendingPrintFormat] = useState<'print' | 'pdf'>('print');
+
+  // Firebase Auth listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if (user.email === 'topsecuritieslko@gmail.com') {
+          setAuthUser(user);
+          setAccessDenied(false);
+        } else {
+          logOut();
+          setAuthUser(null);
+          setAccessDenied(true);
+          alert('Access denied. This app is private.');
+        }
+      } else {
+        setAuthUser(null);
+        setAccessDenied(false);
+      }
+      setCheckingAuth(false);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Initialize client-only states
   useEffect(() => {
     setMounted(true);
     setSelectedDate(startOfToday());
-    
-    // Auth checking
-    const isAuth = localStorage.getItem('app_authenticated') === 'true' || sessionStorage.getItem('app_authenticated') === 'true';
-    if (isAuth) {
-      setIsAuthenticated(true);
-    }
-    setCheckingAuth(false);
 
     const saved = localStorage.getItem('darkMode');
     if (saved === 'true') {
@@ -74,9 +91,7 @@ export default function DailyTaskManager() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('app_authenticated');
-    sessionStorage.removeItem('app_authenticated');
-    setIsAuthenticated(false);
+    logOut();
   };
 
   const dateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
@@ -358,11 +373,60 @@ export default function DailyTaskManager() {
   const toastColorStyles: Record<string, string> = { red: 'bg-red-600', yellow: 'bg-yellow-500', green: 'bg-green-600', gray: 'bg-gray-900 dark:bg-gray-700' };
 
   if (!mounted || checkingAuth || !selectedDate) {
-    return <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A]" />;
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
+      </div>
+    );
   }
 
-  if (!isAuthenticated) {
-    return <LoginPage onSuccess={() => setIsAuthenticated(true)} />;
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4">
+        <div className="bg-white/80 dark:bg-[#1E293B]/80 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-white/20 dark:border-slate-800/80 max-w-sm w-full text-center">
+          <div className="text-5xl mb-4">🚫</div>
+          <h2 className="text-2xl font-black text-red-600 mb-2">Access Denied</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Your account is not authorized to use this app.</p>
+          <button
+            onClick={() => { setAccessDenied(false); }}
+            className="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+          >
+            Try another account
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authUser) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-[#0F172A] transition-colors">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="max-w-sm w-full mx-4 flex flex-col items-center text-center"
+        >
+          <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-600/20">
+            <span className="text-2xl">📋</span>
+          </div>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Daily Task Manager</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-10">Your business, organized.</p>
+          <button
+            onClick={signInWithGoogle}
+            className="w-full flex items-center justify-center gap-3 py-3.5 px-6 bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md hover:shadow-lg text-sm font-semibold text-gray-700 dark:text-gray-200 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+            </svg>
+            Sign in with Google
+          </button>
+        </motion.div>
+      </div>
+    );
   }
 
   return (
@@ -394,10 +458,10 @@ export default function DailyTaskManager() {
             <button 
               onClick={handleLogout} 
               className="p-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#273549] transition-all duration-300"
-              title="Lock App"
-              aria-label="Lock App"
+              title="Sign Out"
+              aria-label="Sign Out"
             >
-              🔒
+              <FiLogOut size={18} />
             </button>
             <button onClick={toggleDarkMode} className="p-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#273549]">
               {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
