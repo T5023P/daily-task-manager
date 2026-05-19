@@ -105,13 +105,15 @@ const MobileTaskCard = memo(function MobileTaskCard({
       className={`rounded-lg ${cfg.bg} border-l-[6px] ${cfg.border} p-1.5 flex gap-1.5 shadow-sm relative ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
     >
       <div className="flex flex-col gap-1.5 items-center pt-0.5 shrink-0">
-        <button
-          onClick={handleDelete}
-          className="text-gray-400 hover:text-red-500 transition-colors"
-          aria-label="Delete task"
-        >
-          <FiTrash2 size={12} />
-        </button>
+        {isPrintSelected && (
+          <button
+            onClick={handleDelete}
+            className="text-red-500 hover:text-red-600 transition-colors"
+            aria-label="Delete task"
+          >
+            <FiTrash2 size={12} />
+          </button>
+        )}
         <input
           type="checkbox"
           checked={!!isPrintSelected}

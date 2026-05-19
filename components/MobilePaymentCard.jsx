@@ -71,13 +71,17 @@ const MobilePaymentCard = memo(function MobilePaymentCard({
       </div>
 
       <div className="flex justify-between items-center pl-[18px] mt-0.5">
-        <button
-          onClick={handleDelete}
-          className="text-gray-400 hover:text-red-500 transition-colors print:hidden"
-          aria-label="Delete payment"
-        >
-          <FiTrash2 size={11} />
-        </button>
+        {isPrintSelected ? (
+          <button
+            onClick={handleDelete}
+            className="text-red-500 hover:text-red-600 transition-colors print:hidden"
+            aria-label="Delete payment"
+          >
+            <FiTrash2 size={11} />
+          </button>
+        ) : (
+          <span />
+        )}
         <div className={`text-[12px] font-bold ${isReceived ? 'text-green-600 dark:text-green-400' : 'text-purple-600 dark:text-purple-400'}`}>
           {formatAmount(task.amount)}
         </div>
