@@ -882,6 +882,7 @@ export default function DailyTaskManager() {
         )}
       </AnimatePresence>
 
+      <motion.div
         initial={false}
         animate={{ y: isCalendarOpen ? 0 : '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
