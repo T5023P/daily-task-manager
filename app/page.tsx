@@ -761,19 +761,6 @@ export default function DailyTaskManager() {
           </div>
         ) : (
           <>
-            {/* Mobile Business Task Section header card */}
-            <section className="bg-white dark:bg-[#1E293B] rounded-lg shadow-sm overflow-hidden border border-gray-200/60 dark:border-[#334155]/60">
-              <div className="p-1.5 flex justify-between items-center">
-                <div className="flex items-center gap-1.5">
-                  <FiClipboard size={14} className="text-blue-600 dark:text-blue-400" />
-                  <h2 className="text-[12px] leading-none font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tight">Business Tasks</h2>
-                </div>
-                <div className="px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#273549] border border-gray-200 dark:border-[#334155] text-[10px] text-gray-600 dark:text-gray-300 flex items-center leading-none">
-                  <span className="font-bold mr-0.5 text-blue-600 dark:text-blue-400">{dailyTasksCombined.length}</span> tasks
-                </div>
-              </div>
-            </section>
-
             {/* The TaskSection itself renders the mobile MobileTaskCard grid */}
             <TaskSection
               title="BUSINESS TASK"

@@ -27,7 +27,13 @@ export default function TaskSection({
   filter = 'all',
   onFilterChange
 }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
+      setIsExpanded(true);
+    }
+  }, []);
 
   const countAll = tasks.length;
   const countRed = tasks.filter(t => t.color === 'red').length;
@@ -77,8 +83,8 @@ export default function TaskSection({
             transition={{ duration: 0.25 }}
             className="flex flex-col flex-1 overflow-hidden"
           >
-            {/* Filters */}
-            <div className="flex items-center gap-2 px-4 pt-4 pb-1 overflow-x-auto hide-scrollbar">
+            {/* Filters (hidden on mobile - mobile uses page-level chips) */}
+            <div className="hidden lg:flex items-center gap-2 px-4 pt-4 pb-1 overflow-x-auto hide-scrollbar">
               <button onClick={() => onFilterChange('all')} className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors shrink-0 ${filter === 'all' ? 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900' : 'bg-gray-100 text-gray-600 dark:bg-[#273549] dark:text-gray-400'}`}>
                 All ({countAll})
               </button>

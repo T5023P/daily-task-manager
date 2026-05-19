@@ -4,14 +4,21 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiChevronDown, FiChevronUp, FiPlus } from 'react-icons/fi';
 import PaymentRow from './PaymentRow';
+import MobilePaymentCard from './MobilePaymentCard';
 import { addPayment } from '../lib/taskService';
 
 export default function PaymentSection({ 
   title, icon: Icon, colorClass, bgClass, tasks, dateStr,
   printSelection = {}, onPrintToggle, onToast
 }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
+      setIsExpanded(true);
+    }
+  }, []);
 
   useEffect(() => {
     setFilter('all');
@@ -90,7 +97,24 @@ export default function PaymentSection({
               </button>
             </div>
 
-            <div className="p-4 flex-1 flex flex-col gap-3 min-h-[120px]">
+            {/* Mobile: compact 1-column list */}
+            <div className="lg:hidden p-2 flex-1 flex flex-col gap-1.5 min-h-[80px]">
+              <AnimatePresence>
+                {filteredTasks.map(task => (
+                  <MobilePaymentCard key={task.id} task={task} dateStr={dateStr}
+                    isPrintSelected={!!printSelection[task.id]} onPrintToggle={onPrintToggle} onToast={onToast} />
+                ))}
+              </AnimatePresence>
+              {tasks.length === 0 && (
+                <div className="flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 py-6">
+                  <span className="text-2xl mb-2">🎉</span>
+                  <p className="text-xs font-medium">No pending payments</p>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop: existing rich PaymentRow */}
+            <div className="hidden lg:flex p-4 flex-1 flex-col gap-3 min-h-[120px]">
               <AnimatePresence>
                 {filteredTasks.map(task => (
                   <PaymentRow key={task.id} task={task} dateStr={dateStr}

@@ -11,7 +11,7 @@ export default function LongTermOrdersSection({
   title, icon: Icon, colorClass, bgClass, dateStr,
   printSelection = {}, onPrintToggle, onToast
 }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -19,6 +19,12 @@ export default function LongTermOrdersSection({
   const [orderText, setOrderText] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
   const [orderColor, setOrderColor] = useState('red');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
+      setIsExpanded(true);
+    }
+  }, []);
 
   useEffect(() => {
     setFilter('all');
