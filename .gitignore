@@ -36,3 +36,6 @@ yarn-error.log*
 .vercel
 
 .vercel
+
+# Firebase Admin SDK key
+*-firebase-adminsdk-*.json
