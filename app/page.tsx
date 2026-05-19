@@ -597,6 +597,15 @@ export default function DailyTaskManager() {
               {darkMode ? <FiSun size={16} /> : <FiMoon size={16} />}
             </button>
 
+            <button
+              onClick={handleLogout}
+              className="h-8 w-8 rounded-md flex items-center justify-center bg-gray-50 dark:bg-[#273549] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#334155] transition-colors border border-gray-200/60 dark:border-[#334155]"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <FiLogOut size={16} />
+            </button>
+
             <div className="relative">
               <button
                 onClick={() => { setMobilePrintMenuOpen(!mobilePrintMenuOpen); setMobileAddMenuOpen(false); }}
