@@ -5,6 +5,9 @@ const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
+  workboxOptions: {
+    navigateFallbackDenylist: [/^\/__\/auth/, /^\/_next\/data/, /^\/api/],
+  },
 });
 
 const nextConfig: NextConfig = {

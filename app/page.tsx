@@ -11,7 +11,7 @@ import {
   addPayment,
   addLongTermOrder
 } from '../lib/taskService';
-import { auth, signInWithGoogle, logOut, onAuthStateChanged, completeRedirectSignIn } from '../lib/auth';
+import { auth, signInWithGoogle, logOut, onAuthStateChanged } from '../lib/auth';
 import type { User } from 'firebase/auth';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -56,10 +56,6 @@ export default function DailyTaskManager() {
 
   // Firebase Auth listener
   useEffect(() => {
-    completeRedirectSignIn().catch((err) => {
-      console.error('Redirect sign-in error:', err);
-    });
-
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         const ALLOWED_EMAILS = [
