@@ -9,7 +9,8 @@ import {
   copyUnfinishedTasksToToday,
   getLongTermOrders,
   addPayment,
-  addLongTermOrder
+  addLongTermOrder,
+  copySelectedTasksToDate
 } from '../lib/taskService';
 import { auth, signInWithGoogle, logOut, onAuthStateChanged } from '../lib/auth';
 import type { User } from 'firebase/auth';
@@ -54,6 +55,7 @@ export default function DailyTaskManager() {
   const [desktopAddMenuOpen, setDesktopAddMenuOpen] = useState(false);
   const [ltoText, setLtoText] = useState('');
   const [ltoDeliveryDate, setLtoDeliveryDate] = useState('');
+  const [showCopyDatePicker, setShowCopyDatePicker] = useState(false);
 
   // Firebase Auth listener
   useEffect(() => {
@@ -191,6 +193,12 @@ export default function DailyTaskManager() {
 
   // Copy with confirmation
   const handleCopyUnfinished = async () => {
+    // If tasks are selected via checkbox, show date picker for selective copy
+    if (selectedPrintCount > 0) {
+      setShowCopyDatePicker(true);
+      return;
+    }
+    
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     if (dateStr === todayStr) {
       showToast("You are already on today's sheet!", "yellow");
@@ -202,6 +210,26 @@ export default function DailyTaskManager() {
       return;
     }
     setShowCopyConfirm(true);
+  };
+
+  const handleCopySelectedToDate = async (targetDateStr: string) => {
+    setShowCopyDatePicker(false);
+    setIsCopying(true);
+    try {
+      const taskIds = Object.keys(printSelection);
+      const result = await copySelectedTasksToDate(dateStr, taskIds, targetDateStr);
+      const copiedCount = result?.copiedCount || 0;
+      if (copiedCount > 0) {
+        showToast(`${copiedCount} task${copiedCount > 1 ? 's' : ''} copied`, "green");
+        setPrintSelection({});
+      } else {
+        showToast("Tasks already exist on that date.", "yellow");
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Copy failed', 'red');
+    } finally {
+      setIsCopying(false);
+    }
   };
 
   const confirmCopy = async () => {
@@ -1027,6 +1055,42 @@ export default function DailyTaskManager() {
                   {pendingPrintFormat === 'pdf' ? 'Save PDF' : 'Print'}
                 </button>
               </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Quick date picker for copying selected tasks */}
+      <AnimatePresence>
+        {showCopyDatePicker && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowCopyDatePicker(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#1E293B] rounded-2xl p-6 shadow-2xl z-50 w-[90%] max-w-xs">
+              <h3 className="text-lg font-bold mb-1 text-gray-900 dark:text-gray-100">Copy {selectedPrintCount} task{selectedPrintCount > 1 ? 's' : ''} to:</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Pick a date below</p>
+              <div className="flex flex-col gap-2">
+                {[0, 1, 2, 3].map(offset => {
+                  const d = addDays(new Date(), offset);
+                  const dStr = format(d, 'yyyy-MM-dd');
+                  const isCurrentSheet = dStr === dateStr;
+                  return (
+                    <button
+                      key={offset}
+                      disabled={isCurrentSheet}
+                      onClick={() => handleCopySelectedToDate(dStr)}
+                      className={`w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition-colors ${
+                        isCurrentSheet
+                          ? 'bg-gray-100 dark:bg-[#273549] text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40'
+                      }`}
+                    >
+                      {offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : format(d, 'EEE, d MMM')}
+                      <span className="text-xs font-normal ml-2 opacity-60">{format(d, 'yyyy-MM-dd')}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button onClick={() => setShowCopyDatePicker(false)} className="mt-4 w-full text-center text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Cancel</button>
             </motion.div>
           </>
         )}
