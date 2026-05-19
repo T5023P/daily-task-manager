@@ -864,9 +864,14 @@ export default function DailyTaskManager() {
                   disabled={!ltoText.trim() || !ltoDeliveryDate}
                   onClick={async () => {
                     if (!ltoText.trim() || !ltoDeliveryDate) return;
-                    await addLongTermOrder({ text: ltoText.trim(), deliveryDate: ltoDeliveryDate });
-                    setMobileLtoModalOpen(false);
-                    showToast('New order added', 'green');
+                    try {
+                      await addLongTermOrder({ text: ltoText.trim(), deliveryDate: ltoDeliveryDate });
+                      setMobileLtoModalOpen(false);
+                      showToast('New order added', 'green');
+                    } catch (err: any) {
+                      console.error('Failed to add long-term order:', err);
+                      showToast(err?.message || 'Failed to add order', 'red');
+                    }
                   }}
                   className="px-6 py-3 bg-orange-600 text-white rounded-xl font-semibold hover:bg-orange-700 disabled:opacity-50 transition-colors shadow-md flex-1"
                 >

@@ -55,7 +55,7 @@ export default function PaymentSection({
             </span>
             <button 
               onClick={(e) => { e.stopPropagation(); handleAddPayment(); }}
-              className="px-3 py-1.5 rounded-lg text-sm font-bold bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-200 shadow-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50 flex items-center gap-1"
+              className="hidden lg:flex px-3 py-1.5 rounded-lg text-sm font-bold bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-200 shadow-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50 items-center gap-1"
             >
               <FiPlus size={16} /> Add
             </button>
