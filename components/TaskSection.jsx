@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiChevronDown, FiChevronUp, FiPlus } from 'react-icons/fi';
 import TaskRow from './TaskRow';
+import MobileTaskCard from './MobileTaskCard';
 
 const EMPTY_STATES = {
   A: { emoji: '📋', msg: "No daily tasks yet — add your first task!" },
@@ -92,7 +93,31 @@ export default function TaskSection({
               </button>
             </div>
 
-            <div className="p-4 flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 items-start min-h-[120px]">
+            {/* Mobile (< lg): compact 2-column grid */}
+            <div className="lg:hidden p-2 flex-1 grid grid-cols-2 gap-1.5 items-start min-h-[120px]">
+              {filteredTasks.length > 0 ? (
+                <AnimatePresence>
+                  {filteredTasks.map(task => (
+                    <MobileTaskCard
+                      key={task.id}
+                      task={task}
+                      dateStr={dateStr}
+                      isPrintSelected={!!printSelection[task.id]}
+                      onPrintToggle={onPrintToggle}
+                      onToast={onToast}
+                    />
+                  ))}
+                </AnimatePresence>
+              ) : (
+                <div className="col-span-2 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 py-8 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 min-h-[120px]">
+                  <span className="text-3xl mb-3">{EMPTY_STATES.default.emoji}</span>
+                  <p className="text-xs font-medium">{EMPTY_STATES.default.msg}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop (>= lg): unchanged TaskRow grid */}
+            <div className="hidden lg:grid p-4 flex-1 grid-cols-1 md:grid-cols-2 gap-3 items-start min-h-[120px]">
               {filteredTasks.length > 0 ? (
                 <AnimatePresence>
                   {filteredTasks.map(task => (
