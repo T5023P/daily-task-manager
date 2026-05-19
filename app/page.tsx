@@ -7,7 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   getTasksForDate,
   copyUnfinishedTasksToToday,
-  getLongTermOrders
+  getLongTermOrders,
+  addPayment,
+  addLongTermOrder
 } from '../lib/taskService';
 import { auth, signInWithGoogle, logOut, onAuthStateChanged } from '../lib/auth';
 import type { User } from 'firebase/auth';
@@ -46,6 +48,11 @@ export default function DailyTaskManager() {
   const [signInError, setSignInError] = useState('');
   const [isPrintDropdownOpen, setIsPrintDropdownOpen] = useState(false);
   const [pendingPrintFormat, setPendingPrintFormat] = useState<'print' | 'pdf'>('print');
+  const [mobileAddMenuOpen, setMobileAddMenuOpen] = useState(false);
+  const [mobilePrintMenuOpen, setMobilePrintMenuOpen] = useState(false);
+  const [mobileLtoModalOpen, setMobileLtoModalOpen] = useState(false);
+  const [ltoText, setLtoText] = useState('');
+  const [ltoDeliveryDate, setLtoDeliveryDate] = useState('');
 
   // Firebase Auth listener
   useEffect(() => {
@@ -450,7 +457,7 @@ export default function DailyTaskManager() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A] flex flex-col font-sans text-gray-800 dark:text-[#F1F5F9] transition-colors duration-300">
-      <header className="bg-white dark:bg-[#1E293B] shadow-sm px-4 sm:px-6 py-4 sticky top-0 z-20 print:hidden">
+      <header className="hidden lg:block bg-white dark:bg-[#1E293B] shadow-sm px-4 sm:px-6 py-4 sticky top-0 z-20 print:hidden">
         <div className="flex justify-between items-start w-full">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Daily Task Manager</h1>
@@ -540,7 +547,7 @@ export default function DailyTaskManager() {
         </div>
       </header>
 
-      <main className={`flex-1 px-4 py-6 w-full 2xl:max-w-[1800px] mx-auto print:hidden transition-all duration-300 ${isCalendarOpen ? 'pb-32' : 'pb-12'}`}>
+      <main className={`hidden lg:block flex-1 px-4 py-6 w-full 2xl:max-w-[1800px] mx-auto print:hidden transition-all duration-300 ${isCalendarOpen ? 'pb-32' : 'pb-12'}`}>
         {loading ? (
           <div className="flex justify-center items-center py-24"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" /></div>
         ) : (
@@ -572,7 +579,309 @@ export default function DailyTaskManager() {
         )}
       </main>
 
-      <motion.div
+      {/* MOBILE LAYOUT (below lg) */}
+      <header className="lg:hidden bg-white dark:bg-[#1E293B] sticky top-0 z-20 px-3 pt-3 pb-2 shadow-sm border-b border-gray-200/60 dark:border-[#334155]/60 print:hidden">
+        <div className="flex justify-between items-center">
+          <div className="flex flex-col">
+            <h1 className="text-[14px] font-bold text-gray-900 dark:text-gray-100 leading-tight">Business Task</h1>
+            <div className="text-[10px] font-medium text-blue-600/80 dark:text-blue-400/80 uppercase tracking-wider">
+              {format(selectedDate, 'EEE, MMM d, yyyy')}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={toggleDarkMode}
+              className="h-8 w-8 rounded-md flex items-center justify-center bg-gray-50 dark:bg-[#273549] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#334155] transition-colors border border-gray-200/60 dark:border-[#334155]"
+              aria-label="Toggle theme"
+            >
+              {darkMode ? <FiSun size={16} /> : <FiMoon size={16} />}
+            </button>
+
+            <div className="relative">
+              <button
+                onClick={() => { setMobilePrintMenuOpen(!mobilePrintMenuOpen); setMobileAddMenuOpen(false); }}
+                className="h-8 px-2.5 rounded-md bg-gray-50 dark:bg-[#273549] border border-gray-200/60 dark:border-[#334155] text-gray-700 dark:text-gray-200 flex items-center gap-1 hover:bg-gray-100 dark:hover:bg-[#334155] transition-colors"
+              >
+                <FiPrinter size={14} />
+                <span className="text-[10px] font-bold uppercase">Print</span>
+                <FiChevronDown size={12} />
+              </button>
+              <AnimatePresence>
+                {mobilePrintMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setMobilePrintMenuOpen(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 5 }}
+                      className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-[#334155] rounded-md shadow-lg z-40 overflow-hidden"
+                    >
+                      <button
+                        onClick={() => { setMobilePrintMenuOpen(false); handlePrint('filtered'); }}
+                        className="w-full text-left px-3 py-2 text-[10px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#273549] border-b border-gray-100 dark:border-[#334155]"
+                      >
+                        Print Filtered
+                      </button>
+                      <button
+                        onClick={() => { setMobilePrintMenuOpen(false); handlePrint('selected', 'print'); }}
+                        className="w-full text-left px-3 py-2 text-[10px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#273549] border-b border-gray-100 dark:border-[#334155]"
+                      >
+                        Print Selected
+                      </button>
+                      <button
+                        onClick={() => { setMobilePrintMenuOpen(false); handlePrint('selected', 'pdf'); }}
+                        className="w-full text-left px-3 py-2 text-[10px] font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#273549]"
+                      >
+                        Save to PDF
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <button
+              onClick={handleCopyUnfinished}
+              disabled={isCopying}
+              className="h-8 px-2.5 rounded-md bg-blue-600 text-white flex items-center gap-1 hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
+            >
+              {isCopying ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" /> : <FiCopy size={14} />}
+              <span className="text-[10px] font-bold uppercase">Copy</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Sub-header: filter chips + add button */}
+        <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-gray-200/40 dark:border-[#334155]/40">
+          <div className="flex-1 overflow-x-auto hide-scrollbar">
+            <div className="flex items-center pr-2 gap-1">
+              <button
+                onClick={() => setTaskFilter('all')}
+                className={`flex items-center gap-0.5 py-0.5 px-2 rounded-full transition-colors shrink-0 ${
+                  taskFilter === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                }`}
+              >
+                <span className="text-[9px] font-bold uppercase tracking-tight">All ({dailyTasksCombined.length})</span>
+              </button>
+              <button
+                onClick={() => setTaskFilter('green')}
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-colors shrink-0 border ${
+                  taskFilter === 'green'
+                    ? 'bg-[#10b981] text-white border-[#10b981]'
+                    : 'bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20 hover:bg-[#10b981]/20'
+                }`}
+              >
+                <FiCheck size={10} />
+                <span className="text-[9px] font-bold tracking-tight uppercase">
+                  <span className="opacity-70 font-medium mr-1">Done:</span>{doneCount}
+                </span>
+              </button>
+              <button
+                onClick={() => setTaskFilter('yellow')}
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-colors shrink-0 border ${
+                  taskFilter === 'yellow'
+                    ? 'bg-[#f59e0b] text-white border-[#f59e0b]'
+                    : 'bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/20 hover:bg-[#f59e0b]/20'
+                }`}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                <span className="text-[9px] font-bold tracking-tight uppercase">
+                  <span className="opacity-70 font-medium mr-1">Active:</span>{inProgressCount}
+                </span>
+              </button>
+              <button
+                onClick={() => setTaskFilter('red')}
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-colors shrink-0 border ${
+                  taskFilter === 'red'
+                    ? 'bg-[#ef4444] text-white border-[#ef4444]'
+                    : 'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20 hover:bg-[#ef4444]/20'
+                }`}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                <span className="text-[9px] font-bold tracking-tight uppercase">
+                  <span className="opacity-70 font-medium mr-1">Pending:</span>{pendingCount}
+                </span>
+              </button>
+            </div>
+          </div>
+          <div className="relative shrink-0">
+            <button
+              onClick={() => { setMobileAddMenuOpen(!mobileAddMenuOpen); setMobilePrintMenuOpen(false); }}
+              className="h-7 px-2 rounded-md bg-blue-600 text-white flex items-center gap-1 hover:bg-blue-700 transition-colors shadow-sm"
+            >
+              <FiPlus size={14} />
+              <FiChevronDown size={11} />
+            </button>
+            <AnimatePresence>
+              {mobileAddMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setMobileAddMenuOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-[#334155] rounded-md shadow-lg z-40 overflow-hidden"
+                  >
+                    <button
+                      onClick={() => { setMobileAddMenuOpen(false); setActiveSection('A'); }}
+                      className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-tighter text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549] border-b border-gray-100 dark:border-[#334155]"
+                    >
+                      New Task
+                    </button>
+                    <button
+                      onClick={() => { setMobileAddMenuOpen(false); setLtoText(''); setLtoDeliveryDate(''); setMobileLtoModalOpen(true); }}
+                      className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-tighter text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549] border-b border-gray-100 dark:border-[#334155]"
+                    >
+                      Long-term Order
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setMobileAddMenuOpen(false);
+                        await addPayment(dateStr, { name: '', amount: '' });
+                        showToast('Payment entry added', 'yellow');
+                      }}
+                      className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-tighter text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549]"
+                    >
+                      Add Payment
+                    </button>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </header>
+
+      <main className={`lg:hidden flex-1 px-2 py-2 flex flex-col gap-2 print:hidden transition-all duration-300 ${isCalendarOpen ? 'pb-32' : 'pb-12'}`}>
+        {loading ? (
+          <div className="flex justify-center items-center py-24">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-500" />
+          </div>
+        ) : (
+          <>
+            {/* Mobile Business Task Section header card */}
+            <section className="bg-white dark:bg-[#1E293B] rounded-lg shadow-sm overflow-hidden border border-gray-200/60 dark:border-[#334155]/60">
+              <div className="p-1.5 flex justify-between items-center">
+                <div className="flex items-center gap-1.5">
+                  <FiClipboard size={14} className="text-blue-600 dark:text-blue-400" />
+                  <h2 className="text-[12px] leading-none font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tight">Business Tasks</h2>
+                </div>
+                <div className="px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-[#273549] border border-gray-200 dark:border-[#334155] text-[10px] text-gray-600 dark:text-gray-300 flex items-center leading-none">
+                  <span className="font-bold mr-0.5 text-blue-600 dark:text-blue-400">{dailyTasksCombined.length}</span> tasks
+                </div>
+              </div>
+            </section>
+
+            {/* The TaskSection itself renders the mobile MobileTaskCard grid */}
+            <TaskSection
+              title="BUSINESS TASK"
+              icon={FiClipboard}
+              colorClass={{ border: 'border-blue-200', text: 'text-blue-700' }}
+              bgClass="bg-blue-50"
+              tasks={dailyTasksCombined}
+              dateStr={dateStr}
+              sectionKey="A"
+              onAddClick={() => setActiveSection('A')}
+              printSelection={printSelection}
+              onPrintToggle={handlePrintToggle}
+              onToast={showToast}
+              filter={taskFilter}
+              onFilterChange={setTaskFilter}
+            />
+
+            {/* Compact bottom: Payments + Long Term Orders */}
+            <div className="flex flex-col gap-1.5 mt-1">
+              <PaymentSection
+                title="Payments"
+                icon={FiCreditCard}
+                colorClass={{ border: 'border-purple-200', text: 'text-purple-700' }}
+                bgClass="bg-purple-50"
+                tasks={tasksC}
+                dateStr={dateStr}
+                printSelection={printSelection}
+                onPrintToggle={handlePrintToggle}
+                onToast={showToast}
+              />
+              <LongTermOrdersSection
+                title="Long Term Orders"
+                icon={FiBox}
+                colorClass={{ border: 'border-orange-200', text: 'text-orange-700' }}
+                bgClass="bg-orange-50"
+                dateStr={dateStr}
+                printSelection={printSelection}
+                onPrintToggle={handlePrintToggle}
+                onToast={showToast}
+              />
+            </div>
+          </>
+        )}
+      </main>
+
+      {/* Mobile Long-Term Order quick modal (from Add menu) */}
+      <AnimatePresence>
+        {mobileLtoModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] lg:hidden"
+              onClick={() => setMobileLtoModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1E293B] rounded-t-3xl p-6 pb-10 shadow-2xl z-[70] flex flex-col gap-4 lg:hidden"
+            >
+              <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full mx-auto mb-2" />
+              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                📦 Add Long Term Order
+              </h3>
+              <input
+                type="text"
+                value={ltoText}
+                onChange={(e) => setLtoText(e.target.value)}
+                placeholder="Order description..."
+                autoFocus
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-[#334155] dark:bg-[#273549] dark:text-gray-100 focus:ring-2 focus:ring-orange-400 outline-none text-base"
+              />
+              <input
+                type="date"
+                value={ltoDeliveryDate}
+                onChange={(e) => setLtoDeliveryDate(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-[#334155] dark:bg-[#273549] dark:text-gray-100 focus:ring-2 focus:ring-orange-400 outline-none text-base cursor-pointer"
+              />
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMobileLtoModalOpen(false)}
+                  className="px-5 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#273549] rounded-xl font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!ltoText.trim() || !ltoDeliveryDate}
+                  onClick={async () => {
+                    if (!ltoText.trim() || !ltoDeliveryDate) return;
+                    await addLongTermOrder({ text: ltoText.trim(), deliveryDate: ltoDeliveryDate });
+                    setMobileLtoModalOpen(false);
+                    showToast('New order added', 'green');
+                  }}
+                  className="px-6 py-3 bg-orange-600 text-white rounded-xl font-semibold hover:bg-orange-700 disabled:opacity-50 transition-colors shadow-md flex-1"
+                >
+                  Save Order
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
         initial={false}
         animate={{ y: isCalendarOpen ? 0 : '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
