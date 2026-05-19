@@ -43,6 +43,7 @@ export default function DailyTaskManager() {
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [signInError, setSignInError] = useState('');
   const [isPrintDropdownOpen, setIsPrintDropdownOpen] = useState(false);
   const [pendingPrintFormat, setPendingPrintFormat] = useState<'print' | 'pdf'>('print');
 
@@ -404,6 +405,16 @@ export default function DailyTaskManager() {
   }
 
   if (!authUser) {
+    const handleSignIn = async () => {
+      setSignInError('');
+      try {
+        await signInWithGoogle();
+      } catch (err: any) {
+        if (err?.code === 'auth/popup-closed-by-user') return;
+        setSignInError(err?.message || 'Sign-in failed. Make sure Google Auth is enabled in Firebase Console.');
+      }
+    };
+
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-[#0F172A] transition-colors">
         <motion.div
@@ -417,8 +428,11 @@ export default function DailyTaskManager() {
           </div>
           <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Daily Task Manager</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-10">Your business, organized.</p>
+          {signInError && (
+            <p className="text-xs text-red-500 mb-4 px-4 py-2 bg-red-50 dark:bg-red-900/20 rounded-xl w-full">{signInError}</p>
+          )}
           <button
-            onClick={signInWithGoogle}
+            onClick={handleSignIn}
             className="w-full flex items-center justify-center gap-3 py-3.5 px-6 bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md hover:shadow-lg text-sm font-semibold text-gray-700 dark:text-gray-200 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24">
