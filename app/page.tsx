@@ -55,7 +55,7 @@ export default function DailyTaskManager() {
           'arsh5023siddiqui@gmail.com'
         ];
 
-        if (ALLOWED_EMAILS.includes(user.email)) {
+        if (user.email && ALLOWED_EMAILS.includes(user.email)) {
           setAuthUser(user);
           setAccessDenied(false);
         } else {
