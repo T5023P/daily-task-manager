@@ -24,6 +24,7 @@ import LongTermOrdersSection from '../components/LongTermOrdersSection';
 import AddTaskModal from '../components/AddTaskModal';
 import DateNavigator from '../components/DateNavigator';
 import PhoneVerification from '../components/PhoneVerification';
+import Paywall from '../components/Paywall';
 
 export default function DailyTaskManager() {
   const [mounted, setMounted] = useState(false);
@@ -87,19 +88,26 @@ export default function DailyTaskManager() {
               setNeedsPhoneVerification(true);
               setTrialExpired(false);
             } else {
-              // Check trial expiry
+              // Check trial expiry or active subscription
               const data = userDoc.data();
-              const trialStart = new Date(data.trialStartDate);
-              const now = new Date();
-              const daysPassed = Math.floor((now.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24));
-              if (daysPassed > 7) {
-                setAuthUser(user);
-                setTrialExpired(true);
-                setNeedsPhoneVerification(false);
-              } else {
+              if (data.subscriptionStatus === 'active') {
+                // Paid user — full access
                 setAuthUser(user);
                 setTrialExpired(false);
                 setNeedsPhoneVerification(false);
+              } else {
+                const trialStart = new Date(data.trialStartDate);
+                const now = new Date();
+                const daysPassed = Math.floor((now.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24));
+                if (daysPassed > 7) {
+                  setAuthUser(user);
+                  setTrialExpired(true);
+                  setNeedsPhoneVerification(false);
+                } else {
+                  setAuthUser(user);
+                  setTrialExpired(false);
+                  setNeedsPhoneVerification(false);
+                }
               }
             }
             setAccessDenied(false);
@@ -494,36 +502,10 @@ export default function DailyTaskManager() {
 
   if (authUser && trialExpired) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 dark:bg-[#0F172A] transition-colors p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="max-w-sm w-full flex flex-col items-center text-center"
-        >
-          <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-orange-500/20">
-            <span className="text-2xl">⏰</span>
-          </div>
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Trial Expired</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-6">
-            Your 7-day free trial has ended. Upgrade to continue using Daily Task Manager.
-          </p>
-          <a
-            href="https://your-payment-link.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-3.5 bg-blue-600 text-white rounded-2xl font-bold text-sm hover:bg-blue-700 transition-colors text-center block"
-          >
-            Upgrade Now
-          </a>
-          <button
-            onClick={() => { logOut(); }}
-            className="mt-4 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-          >
-            Sign out
-          </button>
-        </motion.div>
-      </div>
+      <Paywall
+        user={authUser}
+        onSubscribed={() => setTrialExpired(false)}
+      />
     );
   }
 
