@@ -51,6 +51,7 @@ export default function DailyTaskManager() {
   const [mobileAddMenuOpen, setMobileAddMenuOpen] = useState(false);
   const [mobilePrintMenuOpen, setMobilePrintMenuOpen] = useState(false);
   const [mobileLtoModalOpen, setMobileLtoModalOpen] = useState(false);
+  const [desktopAddMenuOpen, setDesktopAddMenuOpen] = useState(false);
   const [ltoText, setLtoText] = useState('');
   const [ltoDeliveryDate, setLtoDeliveryDate] = useState('');
 
@@ -481,6 +482,54 @@ export default function DailyTaskManager() {
                 📲 <span className="hidden sm:inline">Install App</span>
               </button>
             )}
+            <div className="relative">
+              <button
+                onClick={() => setDesktopAddMenuOpen(!desktopAddMenuOpen)}
+                className="flex items-center gap-1.5 text-sm font-semibold bg-blue-600 text-white px-3 py-2 rounded-xl hover:bg-blue-700 transition-colors shadow-sm"
+              >
+                <FiPlus size={16} /> Add <FiChevronDown size={14} />
+              </button>
+              <AnimatePresence>
+                {desktopAddMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setDesktopAddMenuOpen(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute right-0 top-full mt-1.5 bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 overflow-hidden min-w-[180px]"
+                    >
+                      <button
+                        onClick={() => { setDesktopAddMenuOpen(false); setActiveSection('A'); }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549] flex items-center gap-2 border-b border-gray-100 dark:border-[#334155]"
+                      >
+                        <FiClipboard size={14} className="text-blue-600" /> New Task
+                      </button>
+                      <button
+                        onClick={() => { setDesktopAddMenuOpen(false); setLtoText(''); setLtoDeliveryDate(''); setMobileLtoModalOpen(true); }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549] flex items-center gap-2 border-b border-gray-100 dark:border-[#334155]"
+                      >
+                        <FiBox size={14} className="text-orange-600" /> Long-term Order
+                      </button>
+                      <button
+                        onClick={async () => {
+                          setDesktopAddMenuOpen(false);
+                          try {
+                            await addPayment(dateStr, { name: '', amount: '' });
+                            showToast('Payment entry added', 'yellow');
+                          } catch (err: any) {
+                            showToast(err?.message || 'Failed to add payment', 'red');
+                          }
+                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549] flex items-center gap-2"
+                      >
+                        <FiCreditCard size={14} className="text-purple-600" /> Add Payment
+                      </button>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
             <button
               onClick={handleLogout}
               className="p-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#273549] transition-all duration-300"
@@ -815,7 +864,7 @@ export default function DailyTaskManager() {
         )}
       </main>
 
-      {/* Mobile Long-Term Order quick modal (from Add menu) */}
+      {/* Long-Term Order quick modal (works on mobile + desktop, opened from + Add menu) */}
       <AnimatePresence>
         {mobileLtoModalOpen && (
           <>
@@ -823,7 +872,7 @@ export default function DailyTaskManager() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] lg:hidden"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
               onClick={() => setMobileLtoModalOpen(false)}
             />
             <motion.div
@@ -831,9 +880,9 @@ export default function DailyTaskManager() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 100 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-white dark:bg-[#1E293B] rounded-t-3xl p-6 pb-10 shadow-2xl z-[70] flex flex-col gap-4 lg:hidden"
+              className="fixed bottom-0 left-0 right-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 w-full sm:max-w-md bg-white dark:bg-[#1E293B] rounded-t-3xl sm:rounded-3xl p-6 pb-10 sm:pb-6 shadow-2xl z-[70] flex flex-col gap-4"
             >
-              <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full mx-auto mb-2" />
+              <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full mx-auto mb-2 sm:hidden" />
               <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
                 📦 Add Long Term Order
               </h3>
