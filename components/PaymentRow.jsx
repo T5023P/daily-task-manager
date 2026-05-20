@@ -81,9 +81,49 @@ const PaymentRow = memo(function PaymentRow({ task, dateStr, isPrintSelected, on
   };
 
   const isReceived = task.color === 'green';
-  const rowStyles = isReceived 
-    ? 'bg-green-100/60 dark:bg-[#052E16] border-l-[#22C55E]'
-    : 'bg-purple-100/60 dark:bg-[#2E1065] border-l-[#A855F7]';
+
+  if (isReceived) {
+    return (
+      <motion.div 
+        layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}
+        onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}
+        className={`relative flex items-center justify-between p-2.5 sm:p-3 rounded-xl shadow-sm transition-colors duration-500 border-l-[8px] bg-green-100/40 dark:bg-[#052E16]/40 border-l-[#22C55E] hover:shadow-md dark:border dark:border-[#334155] gap-3 ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Print checkbox */}
+          <label className="shrink-0 flex items-center cursor-pointer print:hidden">
+            <input type="checkbox" checked={isPrintSelected || false}
+              onChange={() => onPrintToggle && onPrintToggle(task.id)}
+              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-[#273549] cursor-pointer" />
+          </label>
+
+          <span className="text-[15px] font-medium text-gray-500 dark:text-gray-400 line-through truncate">
+            {name || 'Unnamed'}
+          </span>
+          
+          <span className="text-[14px] font-bold text-green-600 dark:text-green-400 shrink-0">
+            ₹{(Number(amount) || 0).toLocaleString()}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <button onClick={toggleStatus}
+            className="px-3.5 py-1 rounded-lg font-bold text-xs shadow-sm bg-[#22C55E] text-white border-2 border-[#22C55E] hover:bg-green-600 flex items-center gap-1.5">
+            Received <span className="text-sm leading-none">🟢</span>
+          </button>
+          
+          <button onClick={handleDelete}
+            className={`p-1.5 text-gray-400 hover:text-red-500 hover:bg-white/50 dark:hover:bg-white/10 rounded-lg transition-all duration-200 ${isHovered ? 'opacity-100 scale-100' : 'opacity-100 sm:opacity-0 sm:scale-75'}`}
+            aria-label="Delete payment">
+            <FiTrash2 size={18} />
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  const rowStyles = 'bg-purple-100/60 dark:bg-[#2E1065] border-l-[#A855F7]';
 
   return (
     <motion.div 

@@ -57,6 +57,52 @@ const MobilePaymentCard = memo(function MobilePaymentCard({
     if (onToast) onToast('Payment deleted', 'red');
   };
 
+  if (isReceived) {
+    return (
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.2 }}
+        className={`relative border rounded-lg p-2 shadow-sm flex items-center justify-between gap-3 bg-green-50/70 dark:bg-[#052E16]/30 border-green-200 dark:border-green-900/40 ${
+          isPrintSelected ? 'ring-2 ring-blue-400' : ''
+        }`}
+      >
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <input
+            type="checkbox"
+            checked={!!isPrintSelected}
+            onChange={() => onPrintToggle && onPrintToggle(task.id)}
+            className="w-3.5 h-3.5 shrink-0 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 cursor-pointer print:hidden"
+          />
+          <span className="text-[12px] font-bold text-gray-500 dark:text-gray-400 line-through truncate flex-1">
+            {name || 'Unnamed'}
+          </span>
+          <span className="text-[11px] font-extrabold text-green-600 dark:text-green-400 shrink-0">
+            ₹{amount || 0}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={toggleStatus}
+            className="px-2 py-0.5 rounded text-[10px] font-bold border bg-green-500 border-green-500 text-white shadow-sm"
+          >
+            Paid
+          </button>
+          <button
+            onClick={handleDelete}
+            className="text-gray-400 hover:text-red-500 transition-colors print:hidden p-1"
+            aria-label="Delete payment"
+          >
+            <FiTrash2 size={12} />
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       layout
