@@ -130,77 +130,58 @@ const PaymentRow = memo(function PaymentRow({ task, dateStr, isPrintSelected, on
       layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}
       onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}
-      className={`relative flex flex-col p-3 sm:p-4 rounded-xl shadow-sm transition-colors duration-500 border-l-[8px] ${rowStyles} hover:shadow-md gap-3 dark:border dark:border-[#334155] ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
+      className={`relative flex flex-col p-2 sm:p-2.5 rounded-xl shadow-sm transition-all duration-500 border-l-[6px] ${rowStyles} hover:shadow-md gap-2 dark:border dark:border-[#334155] ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
     >
-      {/* Row 1: Checkbox + Name + Delete button */}
-      <div className="flex items-center gap-3 w-full">
+      {/* Row 1: Checkbox + Name + Amount + Delete button */}
+      <div className="flex items-center gap-2 w-full">
         {/* Print checkbox */}
         <label className="shrink-0 flex items-center cursor-pointer print:hidden">
           <input type="checkbox" checked={isPrintSelected || false}
             onChange={() => onPrintToggle && onPrintToggle(task.id)}
-            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-[#273549] cursor-pointer" />
+            className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-[#273549] cursor-pointer" />
         </label>
 
         <input ref={nameRef} type="text" value={name} onChange={(e) => setName(e.target.value)}
           onBlur={saveUpdates} onKeyDown={(e) => handleKeyDown(e, nameRef)} placeholder="Person Name"
-          className={`flex-1 bg-white/50 dark:bg-white/5 px-3 py-1.5 rounded-lg outline-none text-[15px] transition-all focus:bg-white dark:focus:bg-[#273549] focus:ring-2 ${isReceived ? 'focus:ring-green-400 text-gray-600 dark:text-gray-400' : 'focus:ring-purple-400 text-gray-800 dark:text-gray-100 font-medium'}`} />
+          className="flex-1 bg-white/50 dark:bg-white/5 px-2.5 py-1 rounded-lg outline-none text-sm transition-all focus:bg-white dark:focus:bg-[#273549] focus:ring-2 focus:ring-purple-400 text-gray-800 dark:text-gray-100 font-medium placeholder-gray-400 dark:placeholder-gray-500" />
 
-        <button onClick={handleDelete}
-          className={`shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-white/50 dark:hover:bg-white/10 rounded-lg transition-all duration-200 ${isHovered ? 'opacity-100 scale-100' : 'opacity-100 sm:opacity-0 sm:scale-75'}`}
-          aria-label="Delete payment"><FiTrash2 size={18} /></button>
-      </div>
-
-      {/* Row 2: Amount + Expected Time */}
-      <div className="grid grid-cols-2 gap-3 w-full pl-7 pr-8">
-        <div className="relative w-full">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">₹</span>
+        <div className="relative w-24 sm:w-28 shrink-0">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs font-medium">₹</span>
           <input ref={amountRef} type="number" value={amount} onChange={(e) => setAmount(e.target.value)}
             onBlur={saveUpdates} onKeyDown={(e) => handleKeyDown(e, amountRef)} placeholder="Amount"
-            className={`w-full bg-white/50 dark:bg-white/5 pl-7 pr-3 py-1.5 rounded-lg outline-none text-[15px] transition-all focus:bg-white dark:focus:bg-[#273549] focus:ring-2 ${isReceived ? 'focus:ring-green-400 text-gray-600 dark:text-gray-400' : 'focus:ring-purple-400 text-gray-800 dark:text-gray-100 font-semibold'}`} />
+            className="w-full bg-white/50 dark:bg-white/5 pl-5 pr-2 py-1 rounded-lg outline-none text-sm transition-all focus:bg-white dark:focus:bg-[#273549] focus:ring-2 focus:ring-purple-400 text-gray-800 dark:text-gray-100 font-semibold placeholder-gray-400 dark:placeholder-gray-500" />
         </div>
 
-        <select value={expectedTime} onChange={handleTimeChange}
-          className={`w-full bg-white/50 dark:bg-white/5 px-3 py-1.5 rounded-lg outline-none text-[15px] transition-all focus:bg-white dark:focus:bg-[#273549] focus:ring-2 cursor-pointer ${isReceived ? 'focus:ring-green-400 text-gray-500 dark:text-gray-400' : 'focus:ring-purple-400 text-gray-700 dark:text-gray-200'}`}>
-          {TIME_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-        </select>
+        <button onClick={handleDelete}
+          className={`shrink-0 p-1 text-gray-400 hover:text-red-500 hover:bg-white/50 dark:hover:bg-white/10 rounded-md transition-all duration-200 ${isHovered ? 'opacity-100 scale-100' : 'opacity-100 sm:opacity-0 sm:scale-75'}`}
+          aria-label="Delete payment"><FiTrash2 size={15} /></button>
       </div>
 
-      {/* Row 3: Custom Date Picker (if active) */}
-      {expectedTime === 'Custom date' && (
-        <div className="w-full pl-7 pr-8">
-          <input 
-            type="date"
-            value={customDueDate}
-            min={getLocalTodayStr()}
-            onChange={(e) => {
-              setCustomDueDate(e.target.value);
-              updateTask(uid, dateStr, task.id, { customDueDate: e.target.value });
-            }}
-            className={`w-full bg-white/50 dark:bg-white/5 px-3 py-1.5 rounded-lg outline-none text-[15px] transition-all focus:bg-white dark:focus:bg-[#273549] focus:ring-2 cursor-pointer ${isReceived ? 'focus:ring-green-400 text-gray-500 dark:text-gray-400' : 'focus:ring-purple-400 text-gray-700 dark:text-gray-200'}`}
-          />
-        </div>
-      )}
+      {/* Row 2: Expected Time select + Custom date picker + Status Button */}
+      <div className="flex items-center justify-between gap-2 w-full pl-5.5 sm:pl-6">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <select value={expectedTime} onChange={handleTimeChange}
+            className="bg-white/50 dark:bg-white/5 px-2 py-1 rounded-lg outline-none text-xs transition-all focus:bg-white dark:focus:bg-[#273549] focus:ring-2 focus:ring-purple-400 cursor-pointer text-gray-700 dark:text-gray-200 shrink-0">
+            {TIME_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
 
-      {/* Row 4: Status Indicator and Due Date */}
-      <div className="flex items-center justify-between w-full pl-7 pr-8 border-t border-purple-200/20 dark:border-[#334155]/30 pt-2 mt-1">
-        <div>
-          {expectedTime === 'Custom date' && customDueDate ? (
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-black/5 dark:bg-white/10 text-slate-600 dark:text-slate-300 border border-black/5 dark:border-white/5">
-              Due: {formatCustomDate(customDueDate)}
-            </span>
-          ) : (
-            <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-gray-500">
-              Payment Status
-            </span>
+          {expectedTime === 'Custom date' && (
+            <input 
+              type="date"
+              value={customDueDate}
+              min={getLocalTodayStr()}
+              onChange={(e) => {
+                setCustomDueDate(e.target.value);
+                updateTask(uid, dateStr, task.id, { customDueDate: e.target.value });
+              }}
+              className="bg-white/50 dark:bg-white/5 px-2 py-1 rounded-lg outline-none text-xs transition-all focus:bg-white dark:focus:bg-[#273549] focus:ring-2 focus:ring-purple-400 cursor-pointer text-gray-700 dark:text-gray-200 w-28 sm:w-32"
+            />
           )}
         </div>
 
         <button onClick={toggleStatus}
-          className={`relative px-3.5 py-1 rounded-lg font-bold text-xs shadow-sm transition-all duration-300 flex items-center gap-1.5 border-2 ${
-            isReceived ? 'bg-[#22C55E] text-white border-[#22C55E] hover:bg-green-600 shadow-[0_0_8px_rgba(34,197,94,0.3)]' 
-            : 'bg-white dark:bg-[#273549] text-red-500 dark:text-red-400 border-red-200 dark:border-red-800 hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-          }`}>
-          {isReceived ? <>Received <span className="text-sm leading-none">🟢</span></> : <>Unpaid <span className="text-sm leading-none">🔴</span></>}
+          className="shrink-0 px-2 py-0.5 rounded text-[10px] font-bold border bg-white dark:bg-[#273549] text-red-500 dark:text-red-400 border-red-200 dark:border-red-800 hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 shadow-sm transition-all duration-300">
+          Unpaid
         </button>
       </div>
     </motion.div>
