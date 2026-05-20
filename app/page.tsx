@@ -26,7 +26,11 @@ import DateNavigator from '../components/DateNavigator';
 import PhoneVerification from '../components/PhoneVerification';
 import Paywall from '../components/Paywall';
 import { UserProvider } from '../context/UserContext';
-import { migrateLegacyDataToUser } from '../lib/migrate';
+
+const ADMIN_EMAILS = [
+  'topsecuritieslko@gmail.com',
+  'arsh5023siddiqui@gmail.com'
+];
 
 export default function DailyTaskManager() {
   const [mounted, setMounted] = useState(false);
@@ -64,27 +68,9 @@ export default function DailyTaskManager() {
   const [ltoText, setLtoText] = useState('');
   const [ltoDeliveryDate, setLtoDeliveryDate] = useState('');
   const [showCopyDatePicker, setShowCopyDatePicker] = useState(false);
-  const [isMigrating, setIsMigrating] = useState(false);
-
-  const handleMigrate = async () => {
-    if (!uid) return;
-    setIsMigrating(true);
-    showToast("Starting legacy data migration...", "yellow");
-    const result = await migrateLegacyDataToUser(uid);
-    setIsMigrating(false);
-    if (result.success) {
-      showToast(`Migration successful! Daily: ${result.dailyTasksMigrated}, Long-Term: ${result.longTermOrdersMigrated}`, "green");
-    } else {
-      showToast(`Migration failed: ${result.error}`, "red");
-    }
-  };
 
   // Firebase Auth listener
   useEffect(() => {
-    const ADMIN_EMAILS = [
-      'topsecuritieslko@gmail.com',
-      'arsh5023siddiqui@gmail.com'
-    ];
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -178,7 +164,10 @@ export default function DailyTaskManager() {
   };
 
   const dateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
-  const uid = authUser?.uid || '';
+  const uidVal = authUser?.uid || '';
+  const emailVal = authUser?.email || '';
+  const isAdmin = !!emailVal && ADMIN_EMAILS.includes(emailVal.toLowerCase());
+  const uid = { uid: uidVal, email: emailVal, isAdmin };
 
   const toggleDarkMode = () => {
     const next = !darkMode;
@@ -571,7 +560,7 @@ export default function DailyTaskManager() {
   }
 
   return (
-    <UserProvider uid={uid}>
+    <UserProvider uid={uid.uid} email={uid.email}>
     <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A] flex flex-col font-sans text-gray-800 dark:text-[#F1F5F9] transition-colors duration-300">
       <header className="hidden lg:block bg-white dark:bg-[#1E293B] shadow-sm px-4 sm:px-6 py-4 sticky top-0 z-20 print:hidden">
         <div className="flex justify-between items-start w-full">
@@ -652,15 +641,6 @@ export default function DailyTaskManager() {
               aria-label="Sign Out"
             >
               <FiLogOut size={18} />
-            </button>
-            <button
-              onClick={handleMigrate}
-              disabled={isMigrating}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border-2 border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all disabled:opacity-50"
-              title="Migrate Legacy Tasks"
-            >
-              <span>🔄</span>
-              <span className="hidden xl:inline">{isMigrating ? 'Migrating...' : 'Migrate Legacy Tasks'}</span>
             </button>
             <button onClick={toggleDarkMode} className="p-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#273549]">
               {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
@@ -777,15 +757,6 @@ export default function DailyTaskManager() {
               title="Sign out"
             >
               <FiLogOut size={16} />
-            </button>
-
-            <button
-              onClick={handleMigrate}
-              disabled={isMigrating}
-              className="h-8 px-2 rounded-md flex items-center justify-center bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors border border-amber-200/60 dark:border-amber-900/40 text-[10px] font-bold uppercase tracking-tight"
-              title="Migrate Legacy Tasks"
-            >
-              🔄 Migrate
             </button>
 
             <div className="relative">
