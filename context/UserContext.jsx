@@ -11,8 +11,9 @@ const UserContext = createContext({ uid: '', email: '', isAdmin: false });
 
 export const UserProvider = ({ uid, email, children }) => {
   const isAdmin = !!email && ADMIN_EMAILS.includes(email.toLowerCase());
+  const value = React.useMemo(() => ({ uid, email, isAdmin }), [uid, email, isAdmin]);
   return (
-    <UserContext.Provider value={{ uid, email, isAdmin }}>
+    <UserContext.Provider value={value}>
       {children}
     </UserContext.Provider>
   );
@@ -22,8 +23,8 @@ export const useUser = () => {
   return useContext(UserContext);
 };
 
-// Keep useUid for backwards compatibility
+// Keep useUid for backwards compatibility, returning the full context object
 export const useUid = () => {
   const ctx = useContext(UserContext);
-  return ctx?.uid || '';
+  return ctx;
 };

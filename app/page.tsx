@@ -167,7 +167,7 @@ export default function DailyTaskManager() {
   const uidVal = authUser?.uid || '';
   const emailVal = authUser?.email || '';
   const isAdmin = !!emailVal && ADMIN_EMAILS.includes(emailVal.toLowerCase());
-  const uid = { uid: uidVal, email: emailVal, isAdmin };
+  const uid = React.useMemo(() => ({ uid: uidVal, email: emailVal, isAdmin }), [uidVal, emailVal, isAdmin]);
 
   const toggleDarkMode = () => {
     const next = !darkMode;
