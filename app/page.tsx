@@ -10,7 +10,8 @@ import {
   getLongTermOrders,
   addPayment,
   addLongTermOrder,
-  copySelectedTasksToDate
+  copySelectedTasksToDate,
+  deleteTask
 } from '../lib/taskService';
 import { auth, signInWithGoogle, logOut, onAuthStateChanged } from '../lib/auth';
 import { db } from '../lib/firebase';
@@ -466,6 +467,40 @@ export default function DailyTaskManager() {
     : dailyTasksCombined.filter(t => t.color === taskFilter || (taskFilter === 'yellow' && !t.color));
 
   const filteredPrintCount = dailyTasksCombined.filter(t => t.color === taskFilter || (taskFilter === 'yellow' && !t.color)).length;
+
+  const selectedDailyTasksCount = dailyTasksCombined.filter(t => printSelection[t.id]).length;
+
+  const handleMoveToLongTerm = async () => {
+    if (!uid || selectedDailyTasksCount === 0) return;
+    setIsCopying(true);
+    try {
+      const taskIds = Object.keys(printSelection);
+      const dailyTasksToMove = dailyTasksCombined.filter(t => taskIds.includes(t.id));
+      
+      for (const task of dailyTasksToMove) {
+        await addLongTermOrder(uid, {
+          text: task.text || '',
+          deliveryDate: ''
+        });
+        await deleteTask(uid, dateStr, task.id);
+      }
+      
+      setPrintSelection(prev => {
+        const next = { ...prev };
+        dailyTasksToMove.forEach(task => {
+          delete next[task.id];
+        });
+        return next;
+      });
+      
+      showToast(`Moved ${dailyTasksToMove.length} task${dailyTasksToMove.length > 1 ? 's' : ''} to Long-Term Orders`, 'green');
+    } catch (err: any) {
+      console.error("Failed to move tasks:", err);
+      showToast(err?.message || 'Move failed', 'red');
+    } finally {
+      setIsCopying(false);
+    }
+  };
 
   const sectionLabels: Record<string, string> = { A: 'Daily', B: 'Daily', C: 'Payment', D: 'Long-Term' };
   const colorLabels: Record<string, string> = { red: 'Pending', yellow: 'In Progress', green: 'Done' };
@@ -1187,6 +1222,59 @@ export default function DailyTaskManager() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectedDailyTasksCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, x: '-50%' }}
+            animate={{ 
+              opacity: 1, 
+              y: 0, 
+              x: '-50%',
+              transition: { type: 'spring', damping: 25, stiffness: 350 }
+            }}
+            exit={{ opacity: 0, y: 50, x: '-50%', transition: { duration: 0.2 } }}
+            className={`fixed z-[99] left-1/2 -translate-x-1/2 w-[92%] sm:w-full sm:max-w-md lg:max-w-xl backdrop-blur-md bg-white/90 dark:bg-slate-900/90 border border-gray-200/80 dark:border-slate-800/80 shadow-2xl rounded-2xl p-4 flex flex-row items-center justify-between gap-4 transition-all duration-300 lg:top-6 lg:bottom-auto ${isCalendarOpen ? 'bottom-28' : 'bottom-6'}`}
+          >
+            <div className="flex flex-col text-left">
+              <span className="text-sm font-bold text-gray-900 dark:text-white">
+                {selectedDailyTasksCount} Task{selectedDailyTasksCount > 1 ? 's' : ''} Selected
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
+                From Business Tasks
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPrintSelection(prev => {
+                  const next = { ...prev };
+                  dailyTasksCombined.forEach(t => {
+                    delete next[t.id];
+                  });
+                  return next;
+                })}
+                className="px-3 py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#273549] rounded-xl transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              
+              <button
+                onClick={handleMoveToLongTerm}
+                disabled={isCopying}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+              >
+                {isCopying ? (
+                  <div className="animate-spin rounded-full h-3.5 w-3.5 border-b-2 border-white" />
+                ) : (
+                  <FiBox size={14} />
+                )}
+                Move to Long-Term
+              </button>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
