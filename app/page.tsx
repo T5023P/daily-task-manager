@@ -26,6 +26,7 @@ import DateNavigator from '../components/DateNavigator';
 import PhoneVerification from '../components/PhoneVerification';
 import Paywall from '../components/Paywall';
 import { UserProvider } from '../context/UserContext';
+import { migrateLegacyDataToUser } from '../lib/migrate';
 
 export default function DailyTaskManager() {
   const [mounted, setMounted] = useState(false);
@@ -63,6 +64,20 @@ export default function DailyTaskManager() {
   const [ltoText, setLtoText] = useState('');
   const [ltoDeliveryDate, setLtoDeliveryDate] = useState('');
   const [showCopyDatePicker, setShowCopyDatePicker] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  const handleMigrate = async () => {
+    if (!uid) return;
+    setIsMigrating(true);
+    showToast("Starting legacy data migration...", "yellow");
+    const result = await migrateLegacyDataToUser(uid);
+    setIsMigrating(false);
+    if (result.success) {
+      showToast(`Migration successful! Daily: ${result.dailyTasksMigrated}, Long-Term: ${result.longTermOrdersMigrated}`, "green");
+    } else {
+      showToast(`Migration failed: ${result.error}`, "red");
+    }
+  };
 
   // Firebase Auth listener
   useEffect(() => {
@@ -638,6 +653,15 @@ export default function DailyTaskManager() {
             >
               <FiLogOut size={18} />
             </button>
+            <button
+              onClick={handleMigrate}
+              disabled={isMigrating}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border-2 border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all disabled:opacity-50"
+              title="Migrate Legacy Tasks"
+            >
+              <span>🔄</span>
+              <span className="hidden xl:inline">{isMigrating ? 'Migrating...' : 'Migrate Legacy Tasks'}</span>
+            </button>
             <button onClick={toggleDarkMode} className="p-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#273549]">
               {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
             </button>
@@ -753,6 +777,15 @@ export default function DailyTaskManager() {
               title="Sign out"
             >
               <FiLogOut size={16} />
+            </button>
+
+            <button
+              onClick={handleMigrate}
+              disabled={isMigrating}
+              className="h-8 px-2 rounded-md flex items-center justify-center bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors border border-amber-200/60 dark:border-amber-900/40 text-[10px] font-bold uppercase tracking-tight"
+              title="Migrate Legacy Tasks"
+            >
+              🔄 Migrate
             </button>
 
             <div className="relative">
