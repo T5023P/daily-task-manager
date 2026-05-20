@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, memo } from 'react';
 import { motion } from 'framer-motion';
 import { FiTrash2 } from 'react-icons/fi';
 import { updateTask, deleteTask } from '../lib/taskService';
+import { useUid } from '../context/UserContext';
 
 const COLORS = {
   red: {
@@ -36,6 +37,7 @@ const MobileTaskCard = memo(function MobileTaskCard({
   onPrintToggle,
   onToast,
 }) {
+  const uid = useUid();
   const [text, setText] = useState(task.text || '');
   const [desc, setDesc] = useState(task.description || '');
   const [isDescEditing, setIsDescEditing] = useState(false);
@@ -58,7 +60,7 @@ const MobileTaskCard = memo(function MobileTaskCard({
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
       if (val.trim() && val !== task.text) {
-        updateTask(dateStr, task.id, { text: val.trim() });
+        updateTask(uid, dateStr, task.id, { text: val.trim() });
       }
     }, 800);
   };
@@ -67,27 +69,27 @@ const MobileTaskCard = memo(function MobileTaskCard({
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     if (text !== task.text) {
       if (text.trim() === '') setText(task.text || '');
-      else updateTask(dateStr, task.id, { text: text.trim() });
+      else updateTask(uid, dateStr, task.id, { text: text.trim() });
     }
   };
 
   const handleDescBlur = () => {
     const trimmed = desc.trim();
     if (trimmed !== (task.description || '')) {
-      updateTask(dateStr, task.id, { description: trimmed });
+      updateTask(uid, dateStr, task.id, { description: trimmed });
     }
     setIsDescEditing(false);
   };
 
   const handleColorChange = (color) => {
     if (task.color !== color) {
-      updateTask(dateStr, task.id, { color });
+      updateTask(uid, dateStr, task.id, { color });
       if (onToast) onToast(`Status → ${COLORS[color].label}`, color);
     }
   };
 
   const handleDelete = () => {
-    deleteTask(dateStr, task.id);
+    deleteTask(uid, dateStr, task.id);
     if (onToast) onToast('Task deleted', 'red');
   };
 

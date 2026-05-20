@@ -6,11 +6,13 @@ import { FiChevronDown, FiChevronUp, FiPlus } from 'react-icons/fi';
 import { differenceInDays, parseISO, startOfToday } from 'date-fns';
 import LongTermOrderRow from './LongTermOrderRow';
 import { getLongTermOrders, addLongTermOrder, updateLongTermOrder } from '../lib/taskService';
+import { useUid } from '../context/UserContext';
 
 export default function LongTermOrdersSection({ 
   title, icon: Icon, colorClass, bgClass, dateStr,
   printSelection = {}, onPrintToggle, onToast
 }) {
+  const uid = useUid();
   const [isExpanded, setIsExpanded] = useState(false);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function LongTermOrdersSection({
 
   useEffect(() => {
     setLoading(true);
-    const unsubscribe = getLongTermOrders(dateStr, (fetchedOrders) => {
+    const unsubscribe = getLongTermOrders(uid, dateStr, (fetchedOrders) => {
       const today = startOfToday();
       const sorted = [...fetchedOrders].sort((a, b) => {
         const daysA = a.deliveryDate ? differenceInDays(parseISO(a.deliveryDate), today) : 9999;
@@ -45,7 +47,7 @@ export default function LongTermOrdersSection({
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [dateStr]);
+  }, [dateStr, uid]);
 
   const countAll = orders.length;
   const countRed = orders.filter(o => o.color === 'red').length;
@@ -66,19 +68,19 @@ export default function LongTermOrdersSection({
     if (!orderText.trim() || !deliveryDate) return;
     
     try {
-      await addLongTermOrder({ 
+      await addLongTermOrder(uid, { 
         text: orderText.trim(), 
         deliveryDate: deliveryDate 
       });
 
       if (orderColor !== 'red') {
-        const unsubscribe = getLongTermOrders(dateStr, (fetchedOrders) => {
+        const unsubscribe = getLongTermOrders(uid, dateStr, (fetchedOrders) => {
           const newlyAdded = fetchedOrders.find(
             o => o.text === orderText.trim() && o.color === 'red' && o.deliveryDate === deliveryDate
           );
           if (newlyAdded) {
             unsubscribe();
-            updateLongTermOrder(newlyAdded.id, { color: orderColor }, dateStr);
+            updateLongTermOrder(uid, newlyAdded.id, { color: orderColor }, dateStr);
           }
         });
         setTimeout(() => {

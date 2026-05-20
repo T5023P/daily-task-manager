@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, memo } from 'react';
 import { motion } from 'framer-motion';
 import { FiTrash2 } from 'react-icons/fi';
 import { updateTask, deleteTask } from '../lib/taskService';
+import { useUid } from '../context/UserContext';
 
 const TIME_OPTIONS = ["15 min", "30 min", "1 hour", "2 hours", "Today EOD", "Custom date"];
 
@@ -30,6 +31,7 @@ const formatCustomDate = (dateStr) => {
 };
 
 const PaymentRow = memo(function PaymentRow({ task, dateStr, isPrintSelected, onPrintToggle, onToast }) {
+  const uid = useUid();
   const [name, setName] = useState(task.name || '');
   const [amount, setAmount] = useState(task.amount || '');
   const [expectedTime, setExpectedTime] = useState(task.expectedTime || 'Today EOD');
@@ -52,14 +54,14 @@ const PaymentRow = memo(function PaymentRow({ task, dateStr, isPrintSelected, on
       const today = getLocalTodayStr();
       const initialDate = customDueDate || today;
       setCustomDueDate(initialDate);
-      updateTask(dateStr, task.id, { expectedTime: val, customDueDate: initialDate });
+      updateTask(uid, dateStr, task.id, { expectedTime: val, customDueDate: initialDate });
     } else {
-      updateTask(dateStr, task.id, { expectedTime: val, customDueDate: null });
+      updateTask(uid, dateStr, task.id, { expectedTime: val, customDueDate: null });
     }
   };
 
   const saveUpdates = () => {
-    updateTask(dateStr, task.id, { 
+    updateTask(uid, dateStr, task.id, { 
       name: name.trim(), text: name.trim() || 'New Payment', 
       amount: Number(amount) || 0, expectedTime, customDueDate 
     });
@@ -69,12 +71,12 @@ const PaymentRow = memo(function PaymentRow({ task, dateStr, isPrintSelected, on
 
   const toggleStatus = () => {
     const newColor = task.color === 'green' ? 'red' : 'green';
-    updateTask(dateStr, task.id, { color: newColor });
+    updateTask(uid, dateStr, task.id, { color: newColor });
     if (onToast) onToast(newColor === 'green' ? 'Payment received ✅' : 'Marked unpaid', newColor);
   };
 
   const handleDelete = () => {
-    deleteTask(dateStr, task.id);
+    deleteTask(uid, dateStr, task.id);
     if (onToast) onToast('Payment deleted', 'red');
   };
 
@@ -132,7 +134,7 @@ const PaymentRow = memo(function PaymentRow({ task, dateStr, isPrintSelected, on
             min={getLocalTodayStr()}
             onChange={(e) => {
               setCustomDueDate(e.target.value);
-              updateTask(dateStr, task.id, { customDueDate: e.target.value });
+              updateTask(uid, dateStr, task.id, { customDueDate: e.target.value });
             }}
             className={`w-full bg-white/50 dark:bg-white/5 px-3 py-1.5 rounded-lg outline-none text-[15px] transition-all focus:bg-white dark:focus:bg-[#273549] focus:ring-2 cursor-pointer ${isReceived ? 'focus:ring-green-400 text-gray-500 dark:text-gray-400' : 'focus:ring-purple-400 text-gray-700 dark:text-gray-200'}`}
           />

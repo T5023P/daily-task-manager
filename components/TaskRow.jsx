@@ -4,8 +4,10 @@ import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import { FiTrash2 } from 'react-icons/fi';
 import { updateTask, deleteTask } from '../lib/taskService';
+import { useUid } from '../context/UserContext';
 
 const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintToggle, onToast }) {
+  const uid = useUid();
   const [text, setText] = useState(task.text);
   const [desc, setDesc] = useState(task.description || '');
   const [isHovered, setIsHovered] = useState(false);
@@ -24,7 +26,7 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
       if (newText.trim() && newText !== task.text) {
-        updateTask(dateStr, task.id, { text: newText.trim() });
+        updateTask(uid, dateStr, task.id, { text: newText.trim() });
       }
     }, 800);
   }, [dateStr, task.id, task.text]);
@@ -52,7 +54,7 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
       if (text.trim() === '') {
         setText(task.text);
       } else {
-        updateTask(dateStr, task.id, { text: text.trim() });
+        updateTask(uid, dateStr, task.id, { text: text.trim() });
       }
     }
   };
@@ -66,7 +68,7 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
   const handleDescBlur = () => {
     const trimmed = desc.trim();
     if (trimmed !== (task.description || '')) {
-      updateTask(dateStr, task.id, { description: trimmed });
+      updateTask(uid, dateStr, task.id, { description: trimmed });
     }
     setIsDescEditing(false);
   };
@@ -80,7 +82,7 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
 
   const handleColorChange = (color) => {
     if (task.color !== color) {
-      updateTask(dateStr, task.id, { color });
+      updateTask(uid, dateStr, task.id, { color });
       if (onToast) {
         const labels = { red: 'Pending', yellow: 'In Progress', green: 'Done' };
         onToast(`Status → ${labels[color]}`, color);
@@ -89,7 +91,7 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
   };
 
   const handleDelete = () => {
-    deleteTask(dateStr, task.id);
+    deleteTask(uid, dateStr, task.id);
     if (onToast) onToast('Task deleted', 'red');
   };
 

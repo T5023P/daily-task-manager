@@ -4,9 +4,11 @@ import React, { useState, useEffect, useRef, memo } from 'react';
 import { motion } from 'framer-motion';
 import { FiTrash2 } from 'react-icons/fi';
 import { updateLongTermOrder, deleteLongTermOrder } from '../lib/taskService';
+import { useUid } from '../context/UserContext';
 import { differenceInDays, parseISO, startOfToday } from 'date-fns';
 
 const LongTermOrderRow = memo(function LongTermOrderRow({ order, dateStr, isPrintSelected, onPrintToggle, onToast }) {
+  const uid = useUid();
   const [text, setText] = useState(order.text || '');
   const [deliveryDate, setDeliveryDate] = useState(order.deliveryDate || '');
   const [isHovered, setIsHovered] = useState(false);
@@ -18,18 +20,18 @@ const LongTermOrderRow = memo(function LongTermOrderRow({ order, dateStr, isPrin
   }, [order.text, order.deliveryDate]);
 
   const handleTextSave = () => {
-    if (text !== order.text) updateLongTermOrder(order.id, { text: text.trim() }, dateStr);
+    if (text !== order.text) updateLongTermOrder(uid, order.id, { text: text.trim() }, dateStr);
   };
 
   const handleDateChange = (e) => {
     const val = e.target.value;
     setDeliveryDate(val);
-    updateLongTermOrder(order.id, { deliveryDate: val }, dateStr);
+    updateLongTermOrder(uid, order.id, { deliveryDate: val }, dateStr);
   };
 
   const handleColorChange = (color) => {
     if (order.color !== color) {
-      updateLongTermOrder(order.id, { color }, dateStr);
+      updateLongTermOrder(uid, order.id, { color }, dateStr);
       if (onToast) {
         const labels = { red: 'Pending', yellow: 'In Progress', green: 'Completed' };
         onToast(`Order → ${labels[color]}`, color);
@@ -38,7 +40,7 @@ const LongTermOrderRow = memo(function LongTermOrderRow({ order, dateStr, isPrin
   };
 
   const handleDelete = () => {
-    deleteLongTermOrder(order.id);
+    deleteLongTermOrder(uid, order.id);
     if (onToast) onToast('Order deleted', 'red');
   };
 

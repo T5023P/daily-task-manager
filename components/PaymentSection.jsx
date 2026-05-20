@@ -6,11 +6,13 @@ import { FiChevronDown, FiChevronUp, FiPlus } from 'react-icons/fi';
 import PaymentRow from './PaymentRow';
 import MobilePaymentCard from './MobilePaymentCard';
 import { addPayment } from '../lib/taskService';
+import { useUid } from '../context/UserContext';
 
 export default function PaymentSection({ 
   title, icon: Icon, colorClass, bgClass, tasks, dateStr,
   printSelection = {}, onPrintToggle, onToast
 }) {
+  const uid = useUid();
   const [isExpanded, setIsExpanded] = useState(false);
   const [filter, setFilter] = useState('all');
 
@@ -35,7 +37,7 @@ export default function PaymentSection({
   const filteredTasks = filter === 'all' ? tasks : tasks.filter(t => t.color === filter || (filter === 'yellow' && !t.color));
 
   const handleAddPayment = async () => {
-    await addPayment(dateStr, { name: '', amount: '' });
+    await addPayment(uid, dateStr, { name: '', amount: '' });
     setIsExpanded(true);
     if (onToast) onToast('Payment entry added', 'yellow');
   };

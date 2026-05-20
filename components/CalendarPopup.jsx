@@ -17,8 +17,10 @@ import {
 import { FiChevronLeft, FiChevronRight, FiX } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getDaysWithTasks } from '../lib/taskService';
+import { useUid } from '../context/UserContext';
 
 export default function CalendarPopup({ isOpen, onClose, selectedDate, onDateSelect }) {
+  const uid = useUid();
   const [currentMonth, setCurrentMonth] = useState(startOfMonth(selectedDate));
   const [daysWithTasks, setDaysWithTasks] = useState([]);
 
@@ -26,12 +28,12 @@ export default function CalendarPopup({ isOpen, onClose, selectedDate, onDateSel
     if (isOpen) {
       const fetchTaskPresence = async () => {
         const monthStr = format(currentMonth, 'yyyy-MM');
-        const days = await getDaysWithTasks(monthStr);
+        const days = await getDaysWithTasks(uid, monthStr);
         setDaysWithTasks(days);
       };
       fetchTaskPresence();
     }
-  }, [isOpen, currentMonth]);
+  }, [isOpen, currentMonth, uid]);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(monthStart);

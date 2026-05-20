@@ -4,6 +4,7 @@ import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { FiTrash2 } from 'react-icons/fi';
 import { updateTask, deleteTask } from '../lib/taskService';
+import { useUid } from '../context/UserContext';
 
 const formatAmount = (n) => {
   const num = Number(n) || 0;
@@ -19,16 +20,17 @@ const MobilePaymentCard = memo(function MobilePaymentCard({
   onPrintToggle,
   onToast,
 }) {
+  const uid = useUid();
   const isReceived = task.color === 'green';
 
   const toggleStatus = () => {
     const newColor = isReceived ? 'red' : 'green';
-    updateTask(dateStr, task.id, { color: newColor });
+    updateTask(uid, dateStr, task.id, { color: newColor });
     if (onToast) onToast(newColor === 'green' ? 'Payment received' : 'Marked unpaid', newColor);
   };
 
   const handleDelete = () => {
-    deleteTask(dateStr, task.id);
+    deleteTask(uid, dateStr, task.id);
     if (onToast) onToast('Payment deleted', 'red');
   };
 

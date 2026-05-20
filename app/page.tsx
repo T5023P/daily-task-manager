@@ -25,6 +25,7 @@ import AddTaskModal from '../components/AddTaskModal';
 import DateNavigator from '../components/DateNavigator';
 import PhoneVerification from '../components/PhoneVerification';
 import Paywall from '../components/Paywall';
+import { UserProvider } from '../context/UserContext';
 
 export default function DailyTaskManager() {
   const [mounted, setMounted] = useState(false);
@@ -162,6 +163,7 @@ export default function DailyTaskManager() {
   };
 
   const dateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : '';
+  const uid = authUser?.uid || '';
 
   const toggleDarkMode = () => {
     const next = !darkMode;
@@ -222,21 +224,21 @@ export default function DailyTaskManager() {
 
   // Fetch tasks
   useEffect(() => {
-    if (!dateStr) return;
+    if (!dateStr || !uid) return;
     setLoading(true);
-    const unsubscribeTasks = getTasksForDate(dateStr, (fetchedTasks: any[]) => {
+    const unsubscribeTasks = getTasksForDate(uid, dateStr, (fetchedTasks: any[]) => {
       const sortedTasks = [...fetchedTasks].sort((a, b) => (a.order || 0) - (b.order || 0));
       setTasks(sortedTasks);
       setLoading(false);
     });
-    const unsubscribeOrders = getLongTermOrders(dateStr, (fetchedOrders: any[]) => {
+    const unsubscribeOrders = getLongTermOrders(uid, dateStr, (fetchedOrders: any[]) => {
       setLongTermOrders(fetchedOrders);
     });
     return () => {
       unsubscribeTasks();
       unsubscribeOrders();
     };
-  }, [dateStr]);
+  }, [dateStr, uid]);
 
   useEffect(() => {
     setTaskFilter('all');
@@ -268,7 +270,7 @@ export default function DailyTaskManager() {
     setIsCopying(true);
     try {
       const taskIds = Object.keys(printSelection);
-      const result = await copySelectedTasksToDate(dateStr, taskIds, targetDateStr);
+      const result = await copySelectedTasksToDate(uid, dateStr, taskIds, targetDateStr);
       const copiedCount = result?.copiedCount || 0;
       if (copiedCount > 0) {
         showToast(`${copiedCount} task${copiedCount > 1 ? 's' : ''} copied`, "green");
@@ -288,7 +290,7 @@ export default function DailyTaskManager() {
     setShowCopyConfirm(false);
     setIsCopying(true);
     try {
-      const result = await copyUnfinishedTasksToToday(dateStr);
+      const result = await copyUnfinishedTasksToToday(uid, dateStr);
       const copiedCount = result?.copiedCount || 0;
       const todayDate = new Date();
       if (copiedCount > 0) {
@@ -554,6 +556,7 @@ export default function DailyTaskManager() {
   }
 
   return (
+    <UserProvider uid={uid}>
     <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A] flex flex-col font-sans text-gray-800 dark:text-[#F1F5F9] transition-colors duration-300">
       <header className="hidden lg:block bg-white dark:bg-[#1E293B] shadow-sm px-4 sm:px-6 py-4 sticky top-0 z-20 print:hidden">
         <div className="flex justify-between items-start w-full">
@@ -612,7 +615,7 @@ export default function DailyTaskManager() {
                         onClick={async () => {
                           setDesktopAddMenuOpen(false);
                           try {
-                            await addPayment(dateStr, { name: '', amount: '' });
+                            await addPayment(uid, dateStr, { name: '', amount: '' });
                             showToast('Payment entry added', 'yellow');
                           } catch (err: any) {
                             showToast(err?.message || 'Failed to add payment', 'red');
@@ -894,7 +897,7 @@ export default function DailyTaskManager() {
                     <button
                       onClick={async () => {
                         setMobileAddMenuOpen(false);
-                        await addPayment(dateStr, { name: '', amount: '' });
+                        await addPayment(uid, dateStr, { name: '', amount: '' });
                         showToast('Payment entry added', 'yellow');
                       }}
                       className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-tighter text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549]"
@@ -1011,7 +1014,7 @@ export default function DailyTaskManager() {
                   onClick={async () => {
                     if (!ltoText.trim() || !ltoDeliveryDate) return;
                     try {
-                      await addLongTermOrder({ text: ltoText.trim(), deliveryDate: ltoDeliveryDate });
+                      await addLongTermOrder(uid, { text: ltoText.trim(), deliveryDate: ltoDeliveryDate });
                       setMobileLtoModalOpen(false);
                       showToast('New order added', 'green');
                     } catch (err: any) {
@@ -1189,5 +1192,6 @@ export default function DailyTaskManager() {
         </motion.div>
       )}</AnimatePresence>
     </div>
+    </UserProvider>
   );
 }

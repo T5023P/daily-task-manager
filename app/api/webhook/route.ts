@@ -4,17 +4,21 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize Firebase Admin (server-side)
-if (getApps().length === 0) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
+function getAdminDb() {
+  if (getApps().length === 0) {
+    if (!process.env.FIREBASE_PRIVATE_KEY) {
+      throw new Error('FIREBASE_PRIVATE_KEY is missing');
+    }
+    initializeApp({
+      credential: cert({
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      }),
+    });
+  }
+  return getFirestore();
 }
-
-const adminDb = getFirestore();
 
 function verifyWebhookSignature(body: string, signature: string, secret: string): boolean {
   const expectedSignature = crypto
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
         const planId = subscription.plan_id;
         const isAnnual = planId === process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ANNUAL;
 
-        await adminDb.collection('users').doc(userId).set({
+        await getAdminDb().collection('users').doc(userId).set({
           subscriptionId: subscription.id,
           subscriptionStatus: 'active',
           plan: isAnnual ? 'annual' : 'monthly',
@@ -61,7 +65,7 @@ export async function POST(req: NextRequest) {
       const userId = subscription.notes?.userId;
 
       if (userId) {
-        await adminDb.collection('users').doc(userId).set({
+        await getAdminDb().collection('users').doc(userId).set({
           subscriptionStatus: 'cancelled',
         }, { merge: true });
       }

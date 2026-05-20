@@ -3,8 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { addTask, getTasksForDate, updateTask } from '../lib/taskService';
+import { useUid } from '../context/UserContext';
 
 export default function AddTaskModal({ isOpen, onClose, dateStr, onTaskAdded, section = "A" }) {
+  const uid = useUid();
   const [text, setText] = useState('');
   const [desc, setDesc] = useState('');
   const inputRef = useRef(null);
@@ -36,16 +38,16 @@ export default function AddTaskModal({ isOpen, onClose, dateStr, onTaskAdded, se
     if (!text.trim()) return;
     
     try {
-      await addTask(dateStr, text.trim(), section);
+      await addTask(uid, dateStr, text.trim(), section);
       
       const trimmedDesc = desc.trim();
       if (trimmedDesc) {
         // Find the newly added task to attach description without changing taskService.js
-        const unsubscribe = getTasksForDate(dateStr, (tasks) => {
+        const unsubscribe = getTasksForDate(uid, dateStr, (tasks) => {
           unsubscribe(); // Stop listening immediately
           const newlyAdded = [...tasks].reverse().find(t => t.text === text.trim() && !t.description);
           if (newlyAdded) {
-            updateTask(dateStr, newlyAdded.id, { description: trimmedDesc });
+            updateTask(uid, dateStr, newlyAdded.id, { description: trimmedDesc });
           }
         });
       }
