@@ -152,7 +152,7 @@ export default function LongTermOrdersSection({
               </button>
             </div>
 
-            <div className="p-4 flex-1 flex flex-col gap-3 min-h-[120px]">
+            <div className="p-4 flex-1 flex flex-col gap-3 min-h-[120px] max-h-[350px] overflow-y-auto pr-2">
               {loading ? (
                 <div className="flex justify-center items-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
