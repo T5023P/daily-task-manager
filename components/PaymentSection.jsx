@@ -26,7 +26,7 @@ export default function PaymentSection({
     setFilter('all');
   }, [dateStr]);
 
-  const totalPending = tasks.filter(t => t.color === 'red').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const totalPending = tasks.filter(t => t.color !== 'green').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const totalReceived = tasks.filter(t => t.color === 'green').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
   const countAll = tasks.length;
