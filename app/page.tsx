@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { format, addDays, startOfToday } from 'date-fns';
 import { FiCopy, FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp, FiLogOut, FiPlus } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -589,6 +590,12 @@ export default function DailyTaskManager() {
             </svg>
             Sign in with Google
           </button>
+          <div className="mt-8 text-xs text-gray-400 dark:text-gray-500 font-semibold tracking-wide">
+            By signing in, you agree to our{" "}
+            <Link href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Privacy Policy
+            </Link>
+          </div>
         </motion.div>
       </div>
     );
