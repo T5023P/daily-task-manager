@@ -3,7 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#0F172A",
 };
 
 export const metadata: Metadata = {
@@ -32,6 +32,23 @@ export default function RootLayout({
                 document.documentElement.classList.add('dark');
               }
             } catch (e) {}
+          `
+        }} />
+        {/* Service Worker registration script */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(
+                  function(reg) {
+                    console.log('SW registered with scope:', reg.scope);
+                  },
+                  function(err) {
+                    console.log('SW registration failed:', err);
+                  }
+                );
+              });
+            }
           `
         }} />
       </head>

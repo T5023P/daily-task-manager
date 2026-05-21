@@ -2,7 +2,7 @@
   "name": "Daily Task Manager",
   "short_name": "DailyTasks",
   "description": "A premium 3D Daily Task Manager tailored for organizing business tasks, managing payment logs, and tracking long-term orders with high efficiency.",
-  "id": "/",
+  "id": "/?source=pwa",
   "lang": "en",
   "dir": "ltr",
   "categories": ["productivity", "business"],
@@ -25,8 +25,8 @@
     {"src": "/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ],
   "screenshots": [
-    {"src": "/screenshot_wide.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide"},
-    {"src": "/screenshot_narrow.png", "sizes": "540x720", "type": "image/png", "form_factor": "narrow"}
+    {"src": "/screenshot_wide.png", "sizes": "1024x1024", "type": "image/png", "form_factor": "wide"},
+    {"src": "/screenshot_narrow.png", "sizes": "1024x1024", "type": "image/png", "form_factor": "narrow"}
   ],
   "shortcuts": [
     {

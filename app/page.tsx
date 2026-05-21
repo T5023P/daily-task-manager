@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { format, addDays, startOfToday } from 'date-fns';
-import { FiCopy, FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp, FiLogOut, FiPlus } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp, FiLogOut, FiPlus, FiTrash2, FiRotateCcw } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   getTasksForDate,
@@ -12,7 +12,11 @@ import {
   addPayment,
   addLongTermOrder,
   copySelectedTasksToDate,
-  deleteTask
+  deleteTask,
+  permanentlyDeleteTask,
+  restoreTask,
+  permanentlyDeleteLongTermOrder,
+  restoreLongTermOrder
 } from '../lib/taskService';
 import { auth, signInWithGoogle, logOut, onAuthStateChanged } from '../lib/auth';
 import { db } from '../lib/firebase';
@@ -38,6 +42,9 @@ export default function DailyTaskManager() {
   const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
+  const [deletedTasks, setDeletedTasks] = useState<any[]>([]);
+  const [deletedLongTermOrders, setDeletedLongTermOrders] = useState<any[]>([]);
+  const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState("");
@@ -233,12 +240,18 @@ export default function DailyTaskManager() {
     if (!dateStr || !uid) return;
     setLoading(true);
     const unsubscribeTasks = getTasksForDate(uid, dateStr, (fetchedTasks: any[]) => {
-      const sortedTasks = [...fetchedTasks].sort((a, b) => (a.order || 0) - (b.order || 0));
+      const activeTasks = fetchedTasks.filter(t => !t.isDeleted);
+      const deleted = fetchedTasks.filter(t => t.isDeleted);
+      const sortedTasks = [...activeTasks].sort((a, b) => (a.order || 0) - (b.order || 0));
       setTasks(sortedTasks);
+      setDeletedTasks(deleted);
       setLoading(false);
     });
     const unsubscribeOrders = getLongTermOrders(uid, dateStr, (fetchedOrders: any[]) => {
-      setLongTermOrders(fetchedOrders);
+      const activeOrders = fetchedOrders.filter(o => !o.isDeleted);
+      const deleted = fetchedOrders.filter(o => o.isDeleted);
+      setLongTermOrders(activeOrders);
+      setDeletedLongTermOrders(deleted);
     });
     return () => {
       unsubscribeTasks();
@@ -315,6 +328,71 @@ export default function DailyTaskManager() {
     setToastColor(color);
     setTimeout(() => setToastMessage(""), 3000);
   }, []);
+
+  const handleRestoreTask = async (task: any) => {
+    try {
+      await restoreTask(uid, dateStr, task.id);
+      showToast("Task restored", "green");
+    } catch (err: any) {
+      showToast("Failed to restore task", "red");
+    }
+  };
+
+  const handlePermanentlyDeleteTask = async (task: any) => {
+    if (window.confirm(`Are you sure you want to permanently delete "${task.text || task.name || 'this item'}"?`)) {
+      try {
+        await permanentlyDeleteTask(uid, dateStr, task.id);
+        showToast("Task permanently deleted", "red");
+      } catch (err: any) {
+        showToast("Failed to delete task", "red");
+      }
+    }
+  };
+
+  const handleRestoreLongTermOrder = async (order: any) => {
+    try {
+      await restoreLongTermOrder(uid, order.id);
+      showToast("Order restored", "green");
+    } catch (err: any) {
+      showToast("Failed to restore order", "red");
+    }
+  };
+
+  const handlePermanentlyDeleteLongTermOrder = async (order: any) => {
+    if (window.confirm(`Are you sure you want to permanently delete "${order.text || 'this order'}"?`)) {
+      try {
+        await permanentlyDeleteLongTermOrder(uid, order.id);
+        showToast("Order permanently deleted", "red");
+      } catch (err: any) {
+        showToast("Failed to delete order", "red");
+      }
+    }
+  };
+
+  const handleEmptyRecycleBin = async () => {
+    const totalCount = deletedTasks.length + deletedLongTermOrders.length;
+    if (totalCount === 0) return;
+    
+    if (window.confirm(`Are you sure you want to permanently delete all ${totalCount} items in the Recycle Bin?`)) {
+      setIsCopying(true);
+      try {
+        // Clear tasks
+        for (const task of deletedTasks) {
+          await permanentlyDeleteTask(uid, dateStr, task.id);
+        }
+        // Clear orders
+        for (const order of deletedLongTermOrders) {
+          await permanentlyDeleteLongTermOrder(uid, order.id);
+        }
+        showToast("Recycle bin emptied", "red");
+        setIsRecycleBinOpen(false);
+      } catch (err: any) {
+        showToast("Failed to empty recycle bin", "red");
+      } finally {
+        setIsCopying(false);
+      }
+    }
+  };
 
   const handlePrintToggle = useCallback((taskId: string) => {
     setPrintSelection(prev => {
@@ -687,6 +765,19 @@ export default function DailyTaskManager() {
             <button onClick={toggleDarkMode} className="p-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#273549]">
               {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
             </button>
+            <button
+              onClick={() => setIsRecycleBinOpen(true)}
+              className="relative p-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#273549] transition-all duration-300"
+              title="Recycle Bin"
+              aria-label="Recycle Bin"
+            >
+              <FiTrash2 size={18} />
+              {(deletedTasks.length + deletedLongTermOrders.length) > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold h-4 w-4 rounded-full flex items-center justify-center animate-pulse">
+                  {deletedTasks.length + deletedLongTermOrders.length}
+                </span>
+              )}
+            </button>
             <div className="relative flex items-stretch border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-[#1E293B]">
               <button
                 onClick={() => handlePrint('selected', 'print')}
@@ -799,6 +890,20 @@ export default function DailyTaskManager() {
               title="Sign out"
             >
               <FiLogOut size={16} />
+            </button>
+
+            <button
+              onClick={() => setIsRecycleBinOpen(true)}
+              className="relative h-8 w-8 rounded-md flex items-center justify-center bg-gray-50 dark:bg-[#273549] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#334155] transition-colors border border-gray-200/60 dark:border-[#334155]"
+              aria-label="Recycle Bin"
+              title="Recycle Bin"
+            >
+              <FiTrash2 size={16} />
+              {(deletedTasks.length + deletedLongTermOrders.length) > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold h-3.5 w-3.5 rounded-full flex items-center justify-center animate-pulse">
+                  {deletedTasks.length + deletedLongTermOrders.length}
+                </span>
+              )}
             </button>
 
             <div className="relative">
@@ -1136,6 +1241,178 @@ export default function DailyTaskManager() {
       </div>
 
       <AddTaskModal isOpen={!!activeSection} onClose={() => setActiveSection(null)} dateStr={dateStr} section={activeSection || "A"} onTaskAdded={() => showToast("Task added!", "green")} />
+
+      <AnimatePresence>
+        {isRecycleBinOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80]"
+              onClick={() => setIsRecycleBinOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 100, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 100, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 w-full sm:max-w-xl bg-white dark:bg-[#1E293B] rounded-t-3xl sm:rounded-3xl p-6 pb-10 sm:pb-6 shadow-2xl z-[90] flex flex-col gap-4 max-h-[90vh] sm:max-h-[80vh]"
+            >
+              <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-600 rounded-full mx-auto sm:hidden mb-2" />
+              
+              <div className="flex justify-between items-center pb-2 border-b border-gray-100 dark:border-gray-800">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+                  <FiTrash2 className="text-red-500" /> Recycle Bin
+                  <span className="text-xs bg-gray-100 dark:bg-[#273549] text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded-full font-semibold">
+                    {deletedTasks.length + deletedLongTermOrders.length} items
+                  </span>
+                </h3>
+                {(deletedTasks.length + deletedLongTermOrders.length) > 0 && (
+                  <button
+                    onClick={handleEmptyRecycleBin}
+                    disabled={isCopying}
+                    className="flex items-center gap-1.5 text-xs font-bold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 px-3 py-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
+                  >
+                    Empty Bin
+                  </button>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-1 py-1 flex flex-col gap-2 min-h-[150px] max-h-[50vh] sm:max-h-[55vh]">
+                {(deletedTasks.length + deletedLongTermOrders.length) === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <span className="text-4xl mb-3">♻️</span>
+                    <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Recycle Bin is empty</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Deleted items will appear here for recovery.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Render Deleted Tasks & Payments */}
+                    {deletedTasks.map((task) => {
+                      const isPayment = task.section === 'C';
+                      return (
+                        <div
+                          key={task.id}
+                          className="flex items-center justify-between p-3.5 bg-gray-50 dark:bg-[#273549] border border-gray-100 dark:border-gray-800 rounded-2xl gap-4 hover:shadow-sm transition-all"
+                        >
+                          <div className="flex flex-col gap-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                                isPayment 
+                                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400' 
+                                  : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
+                              }`}>
+                                {isPayment ? 'Payment' : 'Daily Task'}
+                              </span>
+                              {task.deletedAt && (
+                                <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                  Deleted {format(new Date(task.deletedAt), 'd MMM, HH:mm')}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+                              {task.text || task.name}
+                            </span>
+                            {isPayment && (task.amount > 0 || task.expectedTime) && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                {task.amount > 0 && `Amount: ₹${task.amount}`}
+                                {task.amount > 0 && task.expectedTime && ' • '}
+                                {task.expectedTime && `Expected: ${task.expectedTime}`}
+                              </span>
+                            )}
+                            {!isPayment && task.description && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                {task.description}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={() => handleRestoreTask(task)}
+                              title="Restore"
+                              aria-label="Restore"
+                              className="p-2 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl transition-all"
+                            >
+                              <FiRotateCcw size={16} />
+                            </button>
+                            <button
+                              onClick={() => handlePermanentlyDeleteTask(task)}
+                              title="Delete Permanently"
+                              aria-label="Delete Permanently"
+                              className="p-2 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl transition-all"
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Render Deleted Long-Term Orders */}
+                    {deletedLongTermOrders.map((order) => (
+                      <div
+                        key={order.id}
+                        className="flex items-center justify-between p-3.5 bg-gray-50 dark:bg-[#273549] border border-gray-100 dark:border-gray-800 rounded-2xl gap-4 hover:shadow-sm transition-all"
+                      >
+                        <div className="flex flex-col gap-1 min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
+                              Long-Term
+                            </span>
+                            {order.deletedAt && (
+                              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                Deleted {format(new Date(order.deletedAt), 'd MMM, HH:mm')}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+                            {order.text}
+                          </span>
+                          {order.deliveryDate && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                              Delivery Date: {format(new Date(order.deliveryDate), 'd MMM yyyy')}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() => handleRestoreLongTermOrder(order)}
+                            title="Restore"
+                            aria-label="Restore"
+                            className="p-2 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl transition-all"
+                          >
+                            <FiRotateCcw size={16} />
+                          </button>
+                          <button
+                            onClick={() => handlePermanentlyDeleteLongTermOrder(order)}
+                            title="Delete Permanently"
+                            aria-label="Delete Permanently"
+                            className="p-2 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl transition-all"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+
+              <div className="flex justify-end pt-2 border-t border-gray-100 dark:border-gray-800">
+                <button
+                  onClick={() => setIsRecycleBinOpen(false)}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-gray-100 dark:bg-[#273549] text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-[#334155] transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showPrintDialog && (
