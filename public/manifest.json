@@ -9,10 +9,13 @@
   "theme_color": "#0F172A",
   "background_color": "#0F172A",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "start_url": "/",
   "scope": "/",
   "prefer_related_applications": false,
+  "related_applications": [],
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "icons": [
     {"src": "/icon-48x48.png", "sizes": "48x48", "type": "image/png", "purpose": "any"},
     {"src": "/icon-72x72.png", "sizes": "72x72", "type": "image/png", "purpose": "any"},
@@ -25,19 +28,22 @@
     {"src": "/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ],
   "screenshots": [
-    {"src": "/screenshot_wide.png", "sizes": "1024x1024", "type": "image/png", "form_factor": "wide"},
-    {"src": "/screenshot_narrow.png", "sizes": "1024x1024", "type": "image/png", "form_factor": "narrow"}
+    {"src": "/screenshot_wide.jpg", "sizes": "1024x1024", "type": "image/jpeg", "form_factor": "wide", "label": "Desktop view of Daily Task Manager"},
+    {"src": "/screenshot_narrow.jpg", "sizes": "1024x1024", "type": "image/jpeg", "form_factor": "narrow", "label": "Mobile view of Daily Task Manager"}
   ],
   "shortcuts": [
     {
       "name": "Add Task",
       "short_name": "Add",
       "description": "Create a new task",
-      "url": "/add",
+      "url": "/",
       "icons": [{"src": "/icon-96x96.png", "sizes": "96x96", "type": "image/png"}]
     }
   ],
   "launch_handler": {"client_mode": "navigate-existing"},
   "handle_links": "preferred",
-  "edge_side_panel": {"preferred_width": 480}
+  "edge_side_panel": {"preferred_width": 480},
+  "scope_extensions": [
+    {"origin": "*.businesstask.shop"}
+  ]
 }
