@@ -4,6 +4,10 @@ import { AuthProvider } from "../context/AuthContext";
 
 export const viewport: Viewport = {
   themeColor: "#0F172A",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export const metadata: Metadata = {
@@ -24,6 +28,32 @@ export default function RootLayout({
       className="h-full antialiased"
     >
       <head>
+        {/* Force mobile viewport even when Chrome's "Desktop Mode" is enabled */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              try {
+                var setMobileViewport = function() {
+                  var meta = document.querySelector('meta[name="viewport"]');
+                  if (!meta) {
+                    meta = document.createElement('meta');
+                    meta.name = 'viewport';
+                    document.head.appendChild(meta);
+                  }
+                  var content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover';
+                  if (window.screen && window.screen.width && window.screen.width < 1024) {
+                    meta.setAttribute('content', content);
+                  } else {
+                    meta.setAttribute('content', content);
+                  }
+                };
+                setMobileViewport();
+                window.addEventListener('orientationchange', setMobileViewport);
+                window.addEventListener('resize', setMobileViewport);
+              } catch (e) {}
+            })();
+          `
+        }} />
         {/* Inline script to prevent dark mode flash — runs before React hydrates */}
         <script dangerouslySetInnerHTML={{
           __html: `
