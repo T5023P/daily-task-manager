@@ -947,13 +947,13 @@ export default function DailyTaskManager() {
             </div>
 
             <div className="lg:col-span-1 flex flex-col gap-6 h-full">
-              <div className="flex-1 min-h-[300px]">
+              <div className="flex-none">
                 <PaymentSection
                   title="Payment Received" icon={FiCreditCard} colorClass={{ border: 'border-purple-200', text: 'text-purple-700' }} bgClass="bg-purple-50"
                   tasks={tasksC} dateStr={dateStr} printSelection={printSelection} onPrintToggle={handlePrintToggle} onToast={showToast}
                 />
               </div>
-              <div className="flex-1 min-h-[300px]">
+              <div className="flex-1 min-h-0">
                 <LongTermOrdersSection
                   title="Long Term Order" icon={FiBox} colorClass={{ border: 'border-orange-200', text: 'text-orange-700' }} bgClass="bg-orange-50"
                   dateStr={dateStr} printSelection={printSelection} onPrintToggle={handlePrintToggle} onToast={showToast}
