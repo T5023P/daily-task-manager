@@ -566,7 +566,7 @@ export default function DailyTaskManager() {
           text: task.text || '',
           deliveryDate: ''
         });
-        await deleteTask(uid, dateStr, task.id);
+        await permanentlyDeleteTask(uid, dateStr, task.id);
       }
       
       setPrintSelection(prev => {
