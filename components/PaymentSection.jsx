@@ -116,7 +116,7 @@ export default function PaymentSection({
             </div>
 
             {/* Desktop: rich PaymentRow */}
-            <div className="hidden lg:flex p-4 flex-1 flex-col gap-3 min-h-[120px] max-h-[350px] overflow-y-auto pr-2">
+            <div className="hidden lg:flex p-4 flex-1 flex-col gap-3 min-h-[120px] max-h-[560px] overflow-y-auto pr-2">
               <AnimatePresence>
                 {filteredTasks.map(task => (
                   <PaymentRow key={task.id} task={task} dateStr={dateStr}
