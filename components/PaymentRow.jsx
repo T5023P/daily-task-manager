@@ -85,7 +85,7 @@ const PaymentRow = memo(function PaymentRow({ task, dateStr, isPrintSelected, on
   if (isReceived) {
     return (
       <motion.div 
-        layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}
         onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}
         className={`relative flex items-center justify-between p-2.5 sm:p-3 rounded-xl shadow-sm transition-[background-color,border-color,box-shadow,ring] duration-300 border-l-[8px] bg-green-100/40 dark:bg-[#052E16]/40 border-l-[#22C55E] hover:shadow-md dark:border dark:border-[#334155] gap-3 ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
@@ -127,7 +127,7 @@ const PaymentRow = memo(function PaymentRow({ task, dateStr, isPrintSelected, on
 
   return (
     <motion.div 
-      layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}
       onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}
       className={`relative flex flex-col p-2 sm:p-2.5 rounded-xl shadow-sm transition-[background-color,border-color,box-shadow,ring] duration-300 border-l-[6px] ${rowStyles} hover:shadow-md gap-2 dark:border dark:border-[#334155] ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}

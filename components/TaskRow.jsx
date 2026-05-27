@@ -124,7 +124,6 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
 
   return (
     <motion.div 
-      layout
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
