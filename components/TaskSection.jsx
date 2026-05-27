@@ -43,7 +43,7 @@ export default function TaskSection({
   const filteredTasks = filter === 'all' ? tasks : tasks.filter(t => t.color === filter || (filter === 'yellow' && !t.color));
 
   return (
-    <div className={`rounded-2xl border-2 ${colorClass.border} overflow-hidden bg-white dark:bg-[#1E293B] shadow-sm dark:shadow-none flex flex-col h-full dark:border-[#334155]`}>
+    <div className={`rounded-2xl border-2 ${colorClass.border} overflow-hidden bg-white dark:bg-[#1E293B] shadow-sm dark:shadow-none flex flex-col min-h-0 dark:border-[#334155]`}>
       {/* Header */}
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
@@ -100,31 +100,31 @@ export default function TaskSection({
             </div>
 
             {/* Mobile (< lg): compact 2-column grid */}
-            <div className="lg:hidden p-2 flex-1 grid grid-cols-2 gap-1.5 items-start min-h-[120px]">
-              {filteredTasks.length > 0 ? (
-                <AnimatePresence>
-                  {filteredTasks.map((task, idx) => (
-                    <MobileTaskCard
-                      key={task.id}
-                      task={task}
-                      index={idx}
-                      dateStr={dateStr}
-                      isPrintSelected={!!printSelection[task.id]}
-                      onPrintToggle={onPrintToggle}
-                      onToast={onToast}
-                    />
-                  ))}
-                </AnimatePresence>
-              ) : (
-                <div className="col-span-2 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 py-8 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 min-h-[120px]">
-                  <span className="text-3xl mb-3">{EMPTY_STATES.default.emoji}</span>
-                  <p className="text-xs font-medium">{EMPTY_STATES.default.msg}</p>
-                </div>
-              )}
-            </div>
+            <div className="lg:hidden grid grid-cols-2 gap-0.5 items-start min-h-0 auto-rows-min grid-flow-row dense">
+                {filteredTasks.length > 0 ? (
+                  <AnimatePresence>
+                    {filteredTasks.map((task, idx) => (
+                      <MobileTaskCard
+                        key={task.id}
+                        task={task}
+                        index={idx}
+                        dateStr={dateStr}
+                        isPrintSelected={!!printSelection[task.id]}
+                        onPrintToggle={onPrintToggle}
+                        onToast={onToast}
+                      />
+                    ))}
+                  </AnimatePresence>
+                ) : (
+                  <div className="col-span-2 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 py-8 bg-gray-50/50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 min-h-[120px]">
+                    <span className="text-3xl mb-3">{EMPTY_STATES.default.emoji}</span>
+                    <p className="text-xs font-medium">{EMPTY_STATES.default.msg}</p>
+                  </div>
+                )}
+              </div>
 
             {/* Desktop (>= lg): unchanged TaskRow grid */}
-            <div className="hidden lg:grid p-4 flex-1 grid-cols-1 md:grid-cols-2 gap-3 items-start min-h-[120px]">
+            <div className="hidden lg:grid p-4 flex-1 grid-cols-1 md:grid-cols-2 gap-3 items-start min-h-0 grid-flow-row dense">
               {filteredTasks.length > 0 ? (
                 <AnimatePresence>
                   {filteredTasks.map((task, idx) => (
