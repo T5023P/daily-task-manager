@@ -6,7 +6,7 @@ import { FiTrash2 } from 'react-icons/fi';
 import { updateTask, deleteTask } from '../lib/taskService';
 import { useUid } from '../context/UserContext';
 
-const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintToggle, onToast }) {
+const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintToggle, onToast, index }) {
   const uid = useUid();
   const [text, setText] = useState(task.text);
   const [desc, setDesc] = useState(task.description || '');
@@ -131,7 +131,7 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
       transition={{ duration: 0.3 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`relative flex flex-row sm:flex-col p-3 sm:p-4 rounded-xl shadow-sm transition-all duration-500 border-l-[8px] ${currentConfig.border} ${currentConfig.bg} hover:shadow-md gap-2 sm:gap-2 ${isPrintSelected ? 'ring-2 ring-blue-400 dark:ring-blue-500' : ''} dark:border dark:border-[#334155]`}
+      className={`relative flex flex-row sm:flex-col p-3 sm:p-4 rounded-xl shadow-sm transition-[background-color,border-color,box-shadow,ring] duration-300 border-l-[8px] ${currentConfig.border} ${currentConfig.bg} hover:shadow-md gap-2 sm:gap-2 ${isPrintSelected ? 'ring-2 ring-blue-400 dark:ring-blue-500' : ''} dark:border dark:border-[#334155]`}
     >
       {/* Main Content Area (Task + Description) */}
       <div className="flex flex-col flex-1 min-w-0">
@@ -145,15 +145,20 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
             <FiTrash2 size={16} />
           </button>
 
-          {/* Print checkbox */}
-          <label className="shrink-0 flex items-center cursor-pointer print:hidden">
-            <input 
-              type="checkbox"
-              checked={isPrintSelected || false}
-              onChange={() => onPrintToggle && onPrintToggle(task.id)}
-              className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-[#273549] cursor-pointer"
-            />
-          </label>
+          {/* Print checkbox & task number */}
+          <div className="shrink-0 flex flex-col items-center gap-1 sm:gap-1.5 print:hidden">
+            <label className="flex items-center cursor-pointer">
+              <input 
+                type="checkbox"
+                checked={isPrintSelected || false}
+                onChange={() => onPrintToggle && onPrintToggle(task.id)}
+                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-[#273549] cursor-pointer"
+              />
+            </label>
+            <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-black/5 dark:bg-white/10 rounded px-1.5 py-0.5 leading-none" title={`Task #${index + 1}`}>
+              {index + 1}
+            </span>
+          </div>
 
           {/* Text Input */}
           <div className="flex-1 min-w-0 relative">

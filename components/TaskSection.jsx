@@ -103,10 +103,11 @@ export default function TaskSection({
             <div className="lg:hidden p-2 flex-1 grid grid-cols-2 gap-1.5 items-start min-h-[120px]">
               {filteredTasks.length > 0 ? (
                 <AnimatePresence>
-                  {filteredTasks.map(task => (
+                  {filteredTasks.map((task, idx) => (
                     <MobileTaskCard
                       key={task.id}
                       task={task}
+                      index={idx}
                       dateStr={dateStr}
                       isPrintSelected={!!printSelection[task.id]}
                       onPrintToggle={onPrintToggle}
@@ -126,10 +127,11 @@ export default function TaskSection({
             <div className="hidden lg:grid p-4 flex-1 grid-cols-1 md:grid-cols-2 gap-3 items-start min-h-[120px]">
               {filteredTasks.length > 0 ? (
                 <AnimatePresence>
-                  {filteredTasks.map(task => (
+                  {filteredTasks.map((task, idx) => (
                     <TaskRow 
                       key={task.id} 
                       task={task} 
+                      index={idx}
                       dateStr={dateStr} 
                       isPrintSelected={!!printSelection[task.id]}
                       onPrintToggle={onPrintToggle}

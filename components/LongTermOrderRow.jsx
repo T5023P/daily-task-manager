@@ -69,7 +69,7 @@ const LongTermOrderRow = memo(function LongTermOrderRow({ order, dateStr, isPrin
     <motion.div layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}
       onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}
-      className={`relative flex flex-col p-4 rounded-xl shadow-sm transition-colors duration-500 border-l-[8px] ${currentConfig.border} ${currentConfig.bg} hover:shadow-md gap-3 dark:border dark:border-[#334155] ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
+      className={`relative flex flex-col p-4 rounded-xl shadow-sm transition-[background-color,border-color,box-shadow,ring] duration-300 border-l-[8px] ${currentConfig.border} ${currentConfig.bg} hover:shadow-md gap-3 dark:border dark:border-[#334155] ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
     >
       <div className="flex items-start gap-3">
         {/* Print checkbox */}

@@ -36,6 +36,7 @@ const MobileTaskCard = memo(function MobileTaskCard({
   isPrintSelected,
   onPrintToggle,
   onToast,
+  index,
 }) {
   const uid = useUid();
   const [text, setText] = useState(task.text || '');
@@ -106,11 +107,11 @@ const MobileTaskCard = memo(function MobileTaskCard({
       transition={{ duration: 0.2 }}
       className={`rounded-lg ${cfg.bg} border-l-[6px] ${cfg.border} p-1.5 flex gap-1.5 shadow-sm relative ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
     >
-      <div className="flex flex-col gap-1.5 items-center pt-0.5 shrink-0">
+      <div className="flex flex-col gap-1 items-center pt-0.5 shrink-0">
         {isPrintSelected && (
           <button
             onClick={handleDelete}
-            className="text-red-500 hover:text-red-600 transition-colors"
+            className="text-red-500 hover:text-red-600 transition-colors mb-0.5"
             aria-label="Delete task"
           >
             <FiTrash2 size={12} />
@@ -122,6 +123,9 @@ const MobileTaskCard = memo(function MobileTaskCard({
           onChange={() => onPrintToggle && onPrintToggle(task.id)}
           className="w-3 h-3 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 cursor-pointer print:hidden"
         />
+        <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 bg-black/5 dark:bg-white/10 rounded px-1 py-0.5 leading-none mt-1" title={`Task #${index + 1}`}>
+          {index + 1}
+        </span>
       </div>
 
       <div className="flex-1 flex flex-col gap-1 min-w-0">

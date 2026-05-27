@@ -88,7 +88,7 @@ const PaymentRow = memo(function PaymentRow({ task, dateStr, isPrintSelected, on
         layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}
         onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}
-        className={`relative flex items-center justify-between p-2.5 sm:p-3 rounded-xl shadow-sm transition-colors duration-500 border-l-[8px] bg-green-100/40 dark:bg-[#052E16]/40 border-l-[#22C55E] hover:shadow-md dark:border dark:border-[#334155] gap-3 ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
+        className={`relative flex items-center justify-between p-2.5 sm:p-3 rounded-xl shadow-sm transition-[background-color,border-color,box-shadow,ring] duration-300 border-l-[8px] bg-green-100/40 dark:bg-[#052E16]/40 border-l-[#22C55E] hover:shadow-md dark:border dark:border-[#334155] gap-3 ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {/* Print checkbox */}
@@ -130,7 +130,7 @@ const PaymentRow = memo(function PaymentRow({ task, dateStr, isPrintSelected, on
       layout initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}
       onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}
-      className={`relative flex flex-col p-2 sm:p-2.5 rounded-xl shadow-sm transition-all duration-500 border-l-[6px] ${rowStyles} hover:shadow-md gap-2 dark:border dark:border-[#334155] ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
+      className={`relative flex flex-col p-2 sm:p-2.5 rounded-xl shadow-sm transition-[background-color,border-color,box-shadow,ring] duration-300 border-l-[6px] ${rowStyles} hover:shadow-md gap-2 dark:border dark:border-[#334155] ${isPrintSelected ? 'ring-2 ring-blue-400' : ''}`}
     >
       {/* Row 1: Checkbox + Name + Amount + Delete button */}
       <div className="flex items-center gap-2 w-full">
