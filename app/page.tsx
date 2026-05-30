@@ -38,6 +38,10 @@ const ADMIN_EMAILS = [
   'arsh5023siddiqui@gmail.com'
 ];
 
+const BYPASS_EMAILS = [
+  'zuhaib@test.com'
+];
+
 export default function DailyTaskManager() {
   const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -88,8 +92,15 @@ export default function DailyTaskManager() {
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        const lowerEmail = user.email ? user.email.toLowerCase() : '';
         if (user.email && ADMIN_EMAILS.includes(user.email)) {
           // Admin bypass — no trial, no phone verification
+          setAuthUser(user);
+          setAccessDenied(false);
+          setNeedsPhoneVerification(false);
+          setTrialExpired(false);
+        } else if (user.email && BYPASS_EMAILS.includes(lowerEmail)) {
+          // VIP bypass — keeps their own isolated/private data, but bypasses paywall & phone verification
           setAuthUser(user);
           setAccessDenied(false);
           setNeedsPhoneVerification(false);
