@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { format, addDays, startOfToday } from 'date-fns';
-import { FiCopy, FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp, FiLogOut, FiPlus, FiTrash2, FiRotateCcw } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp, FiLogOut, FiPlus, FiTrash2, FiRotateCcw, FiEye } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   getTasksForDate,
@@ -27,6 +27,8 @@ import autoTable from 'jspdf-autotable';
 import TaskSection from '../components/TaskSection';
 import PaymentSection from '../components/PaymentSection';
 import LongTermOrdersSection from '../components/LongTermOrdersSection';
+import OutstandingSection from '../components/OutstandingSection';
+import GlanceModal from '../components/GlanceModal';
 import AddTaskModal from '../components/AddTaskModal';
 import DateNavigator from '../components/DateNavigator';
 import PhoneVerification from '../components/PhoneVerification';
@@ -86,6 +88,7 @@ export default function DailyTaskManager() {
   const [ltoText, setLtoText] = useState('');
   const [ltoDeliveryDate, setLtoDeliveryDate] = useState('');
   const [showCopyDatePicker, setShowCopyDatePicker] = useState(false);
+  const [showGlance, setShowGlance] = useState(false);
 
   // Firebase Auth listener
   useEffect(() => {
@@ -939,6 +942,10 @@ export default function DailyTaskManager() {
               {isCopying ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" /> : <FiCopy size={16} />}
               <span className="hidden sm:inline">Copy to Today ({format(new Date(), 'd MMM')})</span>
             </button>
+            <button onClick={() => setShowGlance(true)} className="flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
+              <FiEye size={16} />
+              <span className="hidden sm:inline">At a Glance</span>
+            </button>
           </div>
         </div>
       </header>
@@ -970,6 +977,12 @@ export default function DailyTaskManager() {
                   dateStr={dateStr} printSelection={printSelection} onPrintToggle={handlePrintToggle} onToast={showToast}
                 />
               </div>
+              <div className="flex-none">
+                <OutstandingSection
+                  colorClass={{ border: 'border-rose-200', text: 'text-rose-700' }} bgClass="bg-rose-50"
+                  onToast={showToast}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -985,6 +998,13 @@ export default function DailyTaskManager() {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setShowGlance(true)}
+              className="h-8 w-8 rounded-md flex items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors border border-indigo-200/60 dark:border-indigo-800"
+              aria-label="Tasks at a glance"
+            >
+              <FiEye size={16} />
+            </button>
             <button
               onClick={toggleDarkMode}
               className="h-8 w-8 rounded-md flex items-center justify-center bg-gray-50 dark:bg-[#273549] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#334155] transition-colors border border-gray-200/60 dark:border-[#334155]"
@@ -1218,6 +1238,11 @@ export default function DailyTaskManager() {
                 dateStr={dateStr}
                 printSelection={printSelection}
                 onPrintToggle={handlePrintToggle}
+                onToast={showToast}
+              />
+              <OutstandingSection
+                colorClass={{ border: 'border-rose-200', text: 'text-rose-700' }}
+                bgClass="bg-rose-50"
                 onToast={showToast}
               />
             </div>
@@ -1677,6 +1702,13 @@ export default function DailyTaskManager() {
           {toastMessage}
         </motion.div>
       )}</AnimatePresence>
+
+      <GlanceModal
+        isOpen={showGlance}
+        onClose={() => setShowGlance(false)}
+        tasks={dailyTasksCombined as any}
+        selectedDate={selectedDate}
+      />
     </div>
     </UserProvider>
   );

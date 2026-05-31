@@ -90,6 +90,19 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
     }
   };
 
+  const PRIORITY = {
+    high: { label: 'High', cls: 'bg-red-600 text-white' },
+    medium: { label: 'Med', cls: 'bg-amber-500 text-white' },
+    low: { label: 'Low', cls: 'bg-blue-600 text-white' },
+  };
+  const priority = PRIORITY[task.priority] ? task.priority : 'medium';
+  const cyclePriority = () => {
+    const order = ['high', 'medium', 'low'];
+    const next = order[(order.indexOf(priority) + 1) % order.length];
+    updateTask(uid, dateStr, task.id, { priority: next });
+    if (onToast) onToast(`Priority → ${next.charAt(0).toUpperCase() + next.slice(1)}`, 'gray');
+  };
+
   const handleDelete = () => {
     deleteTask(uid, dateStr, task.id);
     if (onToast) onToast('Task deleted', 'red');
@@ -157,6 +170,13 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
             <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 bg-black/5 dark:bg-white/10 rounded px-1.5 py-0.5 leading-none" title={`Task #${index + 1}`}>
               {index + 1}
             </span>
+            <button
+              onClick={cyclePriority}
+              className={`text-[9px] font-black rounded px-1.5 py-0.5 leading-none uppercase tracking-wide ${PRIORITY[priority].cls}`}
+              title={`Priority: ${priority} (click to change)`}
+            >
+              {PRIORITY[priority].label}
+            </button>
           </div>
 
           {/* Text Input */}

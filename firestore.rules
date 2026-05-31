@@ -10,8 +10,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null
         && request.auth.token.email in ['topsecuritieslko@gmail.com', 'arsh5023siddiqui@gmail.com'];
     }
+    match /outstandingCollections/{itemId} {
+      allow read, write: if request.auth != null
+        && request.auth.token.email in ['topsecuritieslko@gmail.com', 'arsh5023siddiqui@gmail.com'];
+    }
 
-    // Per-user private data (regular users)
+    // Per-user private data (regular users) — covers dailyTasks, longTermOrders, outstandingCollections
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }

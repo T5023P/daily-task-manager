@@ -28,6 +28,8 @@ export default function TaskSection({
   onFilterChange
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [viewMode, setViewMode] = useState('tasks'); // 'tasks' | 'priority'
+  const [priorityFilter, setPriorityFilter] = useState('all'); // 'all' | 'high' | 'medium' | 'low'
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
@@ -35,12 +37,29 @@ export default function TaskSection({
     }
   }, []);
 
+  const getPriority = (t) => t.priority || 'medium';
+
   const countAll = tasks.length;
   const countRed = tasks.filter(t => t.color === 'red').length;
   const countYellow = tasks.filter(t => t.color === 'yellow' || !t.color).length;
   const countGreen = tasks.filter(t => t.color === 'green').length;
 
-  const filteredTasks = filter === 'all' ? tasks : tasks.filter(t => t.color === filter || (filter === 'yellow' && !t.color));
+  const countHigh = tasks.filter(t => getPriority(t) === 'high').length;
+  const countMedium = tasks.filter(t => getPriority(t) === 'medium').length;
+  const countLow = tasks.filter(t => getPriority(t) === 'low').length;
+
+  const statusFilteredTasks = filter === 'all' ? tasks : tasks.filter(t => t.color === filter || (filter === 'yellow' && !t.color));
+
+  const filteredTasks = viewMode === 'priority'
+    ? (priorityFilter === 'all' ? tasks : tasks.filter(t => getPriority(t) === priorityFilter))
+    : statusFilteredTasks;
+
+  const PRIORITY_ORDER = ['high', 'medium', 'low'];
+  const PRIORITY_META = {
+    high: { label: 'High', chip: 'bg-red-600 text-white', idle: 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
+    medium: { label: 'Medium', chip: 'bg-amber-500 text-white', idle: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' },
+    low: { label: 'Low', chip: 'bg-blue-600 text-white', idle: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' },
+  };
 
   return (
     <div className={`rounded-2xl border-2 ${colorClass.border} overflow-hidden bg-white dark:bg-[#1E293B] shadow-sm dark:shadow-none flex flex-col min-h-0 dark:border-[#334155]`}>
@@ -59,6 +78,24 @@ export default function TaskSection({
           <span className="px-2.5 py-0.5 rounded-full bg-white/60 dark:bg-white/10 text-sm font-semibold text-gray-600 dark:text-gray-300">
             {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
           </span>
+          {/* Tasks <-> Priority toggle */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center bg-white/70 dark:bg-[#1E293B] rounded-lg p-0.5 border border-gray-200 dark:border-[#334155] shadow-sm"
+          >
+            <button
+              onClick={(e) => { e.stopPropagation(); setViewMode('tasks'); }}
+              className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'tasks' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+            >
+              Tasks
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setViewMode('priority'); }}
+              className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'priority' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+            >
+              Priority
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button 
@@ -83,7 +120,8 @@ export default function TaskSection({
             transition={{ duration: 0.25 }}
             className="flex flex-col flex-1 overflow-hidden"
           >
-            {/* Filters (hidden on mobile - mobile uses page-level chips) */}
+            {/* Status Filters (Tasks mode, desktop only - mobile uses page-level chips) */}
+            {viewMode === 'tasks' && (
             <div className="hidden lg:flex items-center gap-2 px-4 pt-4 pb-1 overflow-x-auto hide-scrollbar">
               <button onClick={() => onFilterChange('all')} className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors shrink-0 ${filter === 'all' ? 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900' : 'bg-gray-100 text-gray-600 dark:bg-[#273549] dark:text-gray-400'}`}>
                 All ({countAll})
@@ -98,6 +136,25 @@ export default function TaskSection({
                 🟢 Green ({countGreen})
               </button>
             </div>
+            )}
+
+            {/* Priority Filters (Priority mode, both mobile + desktop) */}
+            {viewMode === 'priority' && (
+            <div className="flex items-center gap-2 px-4 pt-4 pb-1 overflow-x-auto hide-scrollbar">
+              <button onClick={() => setPriorityFilter('all')} className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors shrink-0 ${priorityFilter === 'all' ? 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900' : 'bg-gray-100 text-gray-600 dark:bg-[#273549] dark:text-gray-400'}`}>
+                All ({countAll})
+              </button>
+              <button onClick={() => setPriorityFilter('high')} className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors shrink-0 ${priorityFilter === 'high' ? PRIORITY_META.high.chip : PRIORITY_META.high.idle}`}>
+                High ({countHigh})
+              </button>
+              <button onClick={() => setPriorityFilter('medium')} className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors shrink-0 ${priorityFilter === 'medium' ? PRIORITY_META.medium.chip : PRIORITY_META.medium.idle}`}>
+                Medium ({countMedium})
+              </button>
+              <button onClick={() => setPriorityFilter('low')} className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors shrink-0 ${priorityFilter === 'low' ? PRIORITY_META.low.chip : PRIORITY_META.low.idle}`}>
+                Low ({countLow})
+              </button>
+            </div>
+            )}
 
             {/* Mobile (< lg): compact 2-column grid */}
             <div className="lg:hidden grid grid-cols-2 gap-0.5 items-start min-h-0 auto-rows-min grid-flow-row dense">

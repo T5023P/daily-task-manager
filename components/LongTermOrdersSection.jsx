@@ -36,7 +36,8 @@ export default function LongTermOrdersSection({
     setLoading(true);
     const unsubscribe = getLongTermOrders(uid, dateStr, (fetchedOrders) => {
       const today = startOfToday();
-      const sorted = [...fetchedOrders].sort((a, b) => {
+      const visibleOrders = fetchedOrders.filter(o => !o.isDeleted);
+      const sorted = [...visibleOrders].sort((a, b) => {
         const daysA = a.deliveryDate ? differenceInDays(parseISO(a.deliveryDate), today) : 9999;
         const daysB = b.deliveryDate ? differenceInDays(parseISO(b.deliveryDate), today) : 9999;
         if (a.color === 'green' && b.color !== 'green') return 1;

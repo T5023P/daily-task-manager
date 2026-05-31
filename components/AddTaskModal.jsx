@@ -9,12 +9,14 @@ export default function AddTaskModal({ isOpen, onClose, dateStr, onTaskAdded, se
   const uid = useUid();
   const [text, setText] = useState('');
   const [desc, setDesc] = useState('');
+  const [priority, setPriority] = useState('medium');
   const inputRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
       setText('');
       setDesc('');
+      setPriority('medium');
       setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
@@ -38,7 +40,7 @@ export default function AddTaskModal({ isOpen, onClose, dateStr, onTaskAdded, se
     if (!text.trim()) return;
     
     try {
-      await addTask(uid, dateStr, text.trim(), section);
+      await addTask(uid, dateStr, text.trim(), section, priority);
       
       const trimmedDesc = desc.trim();
       if (trimmedDesc) {
@@ -109,6 +111,26 @@ export default function AddTaskModal({ isOpen, onClose, dateStr, onTaskAdded, se
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-[#334155] dark:bg-[#1E293B] dark:text-gray-200 focus:ring-0 focus:border-blue-500 text-[14px] text-gray-700 outline-none transition-colors resize-none overflow-y-auto hide-scrollbar"
                   style={{ minHeight: '60px', maxHeight: '120px' }}
                 />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-semibold text-gray-500 dark:text-gray-400">Priority</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'high', label: 'High', active: 'bg-red-600 text-white border-red-600', idle: 'text-red-600 border-red-200 dark:border-red-900 hover:bg-red-50 dark:hover:bg-red-900/20' },
+                    { key: 'medium', label: 'Medium', active: 'bg-amber-500 text-white border-amber-500', idle: 'text-amber-600 border-amber-200 dark:border-amber-900 hover:bg-amber-50 dark:hover:bg-amber-900/20' },
+                    { key: 'low', label: 'Low', active: 'bg-blue-600 text-white border-blue-600', idle: 'text-blue-600 border-blue-200 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-900/20' },
+                  ].map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      onClick={() => setPriority(p.key)}
+                      className={`py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${priority === p.key ? p.active : `bg-transparent ${p.idle}`}`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 mt-2">
