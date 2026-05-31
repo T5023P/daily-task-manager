@@ -27,7 +27,6 @@ import autoTable from 'jspdf-autotable';
 import TaskSection from '../components/TaskSection';
 import PaymentSection from '../components/PaymentSection';
 import LongTermOrdersSection from '../components/LongTermOrdersSection';
-import OutstandingSection from '../components/OutstandingSection';
 import GlanceModal from '../components/GlanceModal';
 import AddTaskModal from '../components/AddTaskModal';
 import DateNavigator from '../components/DateNavigator';
@@ -977,12 +976,6 @@ export default function DailyTaskManager() {
                   dateStr={dateStr} printSelection={printSelection} onPrintToggle={handlePrintToggle} onToast={showToast}
                 />
               </div>
-              <div className="flex-none">
-                <OutstandingSection
-                  colorClass={{ border: 'border-rose-200', text: 'text-rose-700' }} bgClass="bg-rose-50"
-                  onToast={showToast}
-                />
-              </div>
             </div>
           </div>
         )}
@@ -1238,11 +1231,6 @@ export default function DailyTaskManager() {
                 dateStr={dateStr}
                 printSelection={printSelection}
                 onPrintToggle={handlePrintToggle}
-                onToast={showToast}
-              />
-              <OutstandingSection
-                colorClass={{ border: 'border-rose-200', text: 'text-rose-700' }}
-                bgClass="bg-rose-50"
                 onToast={showToast}
               />
             </div>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiChevronDown, FiChevronUp, FiPlus } from 'react-icons/fi';
 import TaskRow from './TaskRow';
 import MobileTaskCard from './MobileTaskCard';
+import OutstandingSheet from './OutstandingSheet';
 
 const EMPTY_STATES = {
   A: { emoji: '📋', msg: "No daily tasks yet — add your first task!" },
@@ -50,9 +51,13 @@ export default function TaskSection({
 
   const statusFilteredTasks = filter === 'all' ? tasks : tasks.filter(t => t.color === filter || (filter === 'yellow' && !t.color));
 
+  const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
+  const sortByPriority = (list) =>
+    [...list].sort((a, b) => (PRIORITY_RANK[getPriority(a)] ?? 1) - (PRIORITY_RANK[getPriority(b)] ?? 1));
+
   const filteredTasks = viewMode === 'priority'
-    ? (priorityFilter === 'all' ? tasks : tasks.filter(t => getPriority(t) === priorityFilter))
-    : statusFilteredTasks;
+    ? (priorityFilter === 'all' ? sortByPriority(tasks) : sortByPriority(tasks.filter(t => getPriority(t) === priorityFilter)))
+    : sortByPriority(statusFilteredTasks);
 
   const PRIORITY_ORDER = ['high', 'medium', 'low'];
   const PRIORITY_META = {
@@ -78,7 +83,7 @@ export default function TaskSection({
           <span className="px-2.5 py-0.5 rounded-full bg-white/60 dark:bg-white/10 text-sm font-semibold text-gray-600 dark:text-gray-300">
             {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
           </span>
-          {/* Tasks <-> Priority toggle */}
+          {/* Tasks <-> Priority <-> Outstanding toggle */}
           <div
             onClick={(e) => e.stopPropagation()}
             className="flex items-center bg-white/70 dark:bg-[#1E293B] rounded-lg p-0.5 border border-gray-200 dark:border-[#334155] shadow-sm"
@@ -94,6 +99,12 @@ export default function TaskSection({
               className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'priority' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
             >
               Priority
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setViewMode('outstanding'); }}
+              className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all whitespace-nowrap ${viewMode === 'outstanding' ? 'bg-rose-600 text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+            >
+              Outstanding
             </button>
           </div>
         </div>
@@ -157,6 +168,7 @@ export default function TaskSection({
             )}
 
             {/* Mobile (< lg): compact 2-column grid */}
+            {viewMode !== 'outstanding' && (
             <div className="lg:hidden grid grid-cols-2 gap-0.5 items-start min-h-0 auto-rows-min grid-flow-row dense">
                 {filteredTasks.length > 0 ? (
                   <AnimatePresence>
@@ -179,8 +191,15 @@ export default function TaskSection({
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Outstanding Collection spreadsheet (both mobile + desktop) */}
+            {viewMode === 'outstanding' && (
+              <OutstandingSheet onToast={onToast} />
+            )}
 
             {/* Desktop (>= lg): unchanged TaskRow grid */}
+            {viewMode !== 'outstanding' && (
             <div className="hidden lg:grid p-4 flex-1 grid-cols-1 md:grid-cols-2 gap-3 items-start min-h-0 grid-flow-row dense">
               {filteredTasks.length > 0 ? (
                 <AnimatePresence>
@@ -203,6 +222,7 @@ export default function TaskSection({
                 </div>
               )}
             </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
