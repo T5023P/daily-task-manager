@@ -6,6 +6,7 @@ import { FiChevronDown, FiChevronUp, FiPlus } from 'react-icons/fi';
 import TaskRow from './TaskRow';
 import MobileTaskCard from './MobileTaskCard';
 import OutstandingSheet from './OutstandingSheet';
+import { useBetaFeatures } from '../context/UserContext';
 
 const EMPTY_STATES = {
   A: { emoji: '📋', msg: "No daily tasks yet — add your first task!" },
@@ -29,8 +30,12 @@ export default function TaskSection({
   onFilterChange
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [viewMode, setViewMode] = useState('tasks'); // 'tasks' | 'priority'
+  const [viewMode, setViewMode] = useState('tasks'); // 'tasks' | 'priority' | 'outstanding'
   const [priorityFilter, setPriorityFilter] = useState('all'); // 'all' | 'high' | 'medium' | 'low'
+  const betaFeatures = useBetaFeatures();
+
+  // Non-beta users are always locked to the plain Tasks view
+  const effectiveViewMode = betaFeatures ? viewMode : 'tasks';
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
@@ -55,7 +60,7 @@ export default function TaskSection({
   const sortByPriority = (list) =>
     [...list].sort((a, b) => (PRIORITY_RANK[getPriority(a)] ?? 1) - (PRIORITY_RANK[getPriority(b)] ?? 1));
 
-  const filteredTasks = viewMode === 'priority'
+  const filteredTasks = effectiveViewMode === 'priority'
     ? (priorityFilter === 'all' ? sortByPriority(tasks) : sortByPriority(tasks.filter(t => getPriority(t) === priorityFilter)))
     : sortByPriority(statusFilteredTasks);
 
@@ -83,7 +88,8 @@ export default function TaskSection({
           <span className="px-2.5 py-0.5 rounded-full bg-white/60 dark:bg-white/10 text-sm font-semibold text-gray-600 dark:text-gray-300">
             {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
           </span>
-          {/* Tasks <-> Priority <-> Outstanding toggle */}
+          {/* Tasks <-> Priority <-> Outstanding toggle (beta users only) */}
+          {betaFeatures && (
           <div
             onClick={(e) => e.stopPropagation()}
             className="flex items-center bg-white/70 dark:bg-[#1E293B] rounded-lg p-0.5 border border-gray-200 dark:border-[#334155] shadow-sm"
@@ -107,6 +113,7 @@ export default function TaskSection({
               Outstanding
             </button>
           </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button 
@@ -132,7 +139,7 @@ export default function TaskSection({
             className="flex flex-col flex-1 overflow-hidden"
           >
             {/* Status Filters (Tasks mode, desktop only - mobile uses page-level chips) */}
-            {viewMode === 'tasks' && (
+            {effectiveViewMode === 'tasks' && (
             <div className="hidden lg:flex items-center gap-2 px-4 pt-4 pb-1 overflow-x-auto hide-scrollbar">
               <button onClick={() => onFilterChange('all')} className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors shrink-0 ${filter === 'all' ? 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900' : 'bg-gray-100 text-gray-600 dark:bg-[#273549] dark:text-gray-400'}`}>
                 All ({countAll})
@@ -150,7 +157,7 @@ export default function TaskSection({
             )}
 
             {/* Priority Filters (Priority mode, both mobile + desktop) */}
-            {viewMode === 'priority' && (
+            {effectiveViewMode === 'priority' && (
             <div className="flex items-center gap-2 px-4 pt-4 pb-1 overflow-x-auto hide-scrollbar">
               <button onClick={() => setPriorityFilter('all')} className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-colors shrink-0 ${priorityFilter === 'all' ? 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900' : 'bg-gray-100 text-gray-600 dark:bg-[#273549] dark:text-gray-400'}`}>
                 All ({countAll})
@@ -168,7 +175,7 @@ export default function TaskSection({
             )}
 
             {/* Mobile (< lg): compact 2-column grid */}
-            {viewMode !== 'outstanding' && (
+            {effectiveViewMode !== 'outstanding' && (
             <div className="lg:hidden grid grid-cols-2 gap-0.5 items-start min-h-0 auto-rows-min grid-flow-row dense">
                 {filteredTasks.length > 0 ? (
                   <AnimatePresence>
@@ -194,12 +201,12 @@ export default function TaskSection({
             )}
 
             {/* Outstanding Collection spreadsheet (both mobile + desktop) */}
-            {viewMode === 'outstanding' && (
+            {effectiveViewMode === 'outstanding' && (
               <OutstandingSheet onToast={onToast} />
             )}
 
             {/* Desktop (>= lg): unchanged TaskRow grid */}
-            {viewMode !== 'outstanding' && (
+            {effectiveViewMode !== 'outstanding' && (
             <div className="hidden lg:grid p-4 flex-1 grid-cols-1 md:grid-cols-2 gap-3 items-start min-h-0 grid-flow-row dense">
               {filteredTasks.length > 0 ? (
                 <AnimatePresence>

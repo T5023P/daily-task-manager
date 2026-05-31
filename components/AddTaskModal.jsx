@@ -3,10 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { addTask, getTasksForDate, updateTask } from '../lib/taskService';
-import { useUid } from '../context/UserContext';
+import { useUid, useBetaFeatures } from '../context/UserContext';
 
 export default function AddTaskModal({ isOpen, onClose, dateStr, onTaskAdded, section = "A" }) {
   const uid = useUid();
+  const betaFeatures = useBetaFeatures();
   const [text, setText] = useState('');
   const [desc, setDesc] = useState('');
   const [priority, setPriority] = useState('medium');
@@ -113,7 +114,7 @@ export default function AddTaskModal({ isOpen, onClose, dateStr, onTaskAdded, se
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
+              <div className={`flex-col gap-1.5 ${betaFeatures ? 'flex' : 'hidden'}`}>
                 <label className="text-sm font-semibold text-gray-500 dark:text-gray-400">Priority</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[

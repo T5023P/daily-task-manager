@@ -4,10 +4,11 @@ import React, { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import { FiTrash2 } from 'react-icons/fi';
 import { updateTask, deleteTask } from '../lib/taskService';
-import { useUid } from '../context/UserContext';
+import { useUid, useBetaFeatures } from '../context/UserContext';
 
 const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintToggle, onToast, index }) {
   const uid = useUid();
+  const betaFeatures = useBetaFeatures();
   const [text, setText] = useState(task.text);
   const [desc, setDesc] = useState(task.description || '');
   const [isHovered, setIsHovered] = useState(false);
@@ -172,7 +173,7 @@ const TaskRow = memo(function TaskRow({ task, dateStr, isPrintSelected, onPrintT
             </span>
             <button
               onClick={cyclePriority}
-              className={`text-[9px] font-black rounded px-1.5 py-0.5 leading-none uppercase tracking-wide ${PRIORITY[priority].cls}`}
+              className={`${betaFeatures ? '' : 'hidden'} text-[9px] font-black rounded px-1.5 py-0.5 leading-none uppercase tracking-wide ${PRIORITY[priority].cls}`}
               title={`Priority: ${priority} (click to change)`}
             >
               {PRIORITY[priority].label}

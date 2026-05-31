@@ -7,11 +7,18 @@ const ADMIN_EMAILS = [
   'arsh5023siddiqui@gmail.com'
 ];
 
-const UserContext = createContext({ uid: '', email: '', isAdmin: false });
+// Users who can see the new beta features (Priority, Outstanding Collections, At-a-Glance)
+const BETA_EMAILS = [
+  'zuhaib@test.com'
+];
+
+const UserContext = createContext({ uid: '', email: '', isAdmin: false, betaFeatures: false });
 
 export const UserProvider = ({ uid, email, children }) => {
-  const isAdmin = !!email && ADMIN_EMAILS.includes(email.toLowerCase());
-  const value = React.useMemo(() => ({ uid, email, isAdmin }), [uid, email, isAdmin]);
+  const lower = email ? email.toLowerCase() : '';
+  const isAdmin = !!lower && ADMIN_EMAILS.includes(lower);
+  const betaFeatures = !!lower && BETA_EMAILS.includes(lower);
+  const value = React.useMemo(() => ({ uid, email, isAdmin, betaFeatures }), [uid, email, isAdmin, betaFeatures]);
   return (
     <UserContext.Provider value={value}>
       {children}
@@ -21,6 +28,12 @@ export const UserProvider = ({ uid, email, children }) => {
 
 export const useUser = () => {
   return useContext(UserContext);
+};
+
+// Returns true only for users allowed to see the new beta features
+export const useBetaFeatures = () => {
+  const ctx = useContext(UserContext);
+  return !!ctx?.betaFeatures;
 };
 
 // Keep useUid for backwards compatibility, returning the full context object

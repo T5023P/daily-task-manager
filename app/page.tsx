@@ -194,6 +194,7 @@ export default function DailyTaskManager() {
   const uidVal = authUser?.uid || '';
   const emailVal = authUser?.email || '';
   const isAdmin = !!emailVal && ADMIN_EMAILS.includes(emailVal.toLowerCase());
+  const betaFeatures = !!emailVal && ['zuhaib@test.com'].includes(emailVal.toLowerCase());
   const uid = React.useMemo(() => ({ uid: uidVal, email: emailVal, isAdmin }), [uidVal, emailVal, isAdmin]);
 
   const toggleDarkMode = () => {
@@ -941,10 +942,12 @@ export default function DailyTaskManager() {
               {isCopying ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" /> : <FiCopy size={16} />}
               <span className="hidden sm:inline">Copy to Today ({format(new Date(), 'd MMM')})</span>
             </button>
+            {betaFeatures && (
             <button onClick={() => setShowGlance(true)} className="flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
               <FiEye size={16} />
               <span className="hidden sm:inline">At a Glance</span>
             </button>
+            )}
           </div>
         </div>
       </header>
@@ -991,6 +994,7 @@ export default function DailyTaskManager() {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
+            {betaFeatures && (
             <button
               onClick={() => setShowGlance(true)}
               className="h-8 w-8 rounded-md flex items-center justify-center bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors border border-indigo-200/60 dark:border-indigo-800"
@@ -998,6 +1002,7 @@ export default function DailyTaskManager() {
             >
               <FiEye size={16} />
             </button>
+            )}
             <button
               onClick={toggleDarkMode}
               className="h-8 w-8 rounded-md flex items-center justify-center bg-gray-50 dark:bg-[#273549] text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#334155] transition-colors border border-gray-200/60 dark:border-[#334155]"

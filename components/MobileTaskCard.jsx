@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, memo } from 'react';
 import { motion } from 'framer-motion';
 import { FiTrash2 } from 'react-icons/fi';
 import { updateTask, deleteTask } from '../lib/taskService';
-import { useUid } from '../context/UserContext';
+import { useUid, useBetaFeatures } from '../context/UserContext';
 
 const COLORS = {
   red: {
@@ -39,6 +39,7 @@ const MobileTaskCard = memo(function MobileTaskCard({
   index,
 }) {
   const uid = useUid();
+  const betaFeatures = useBetaFeatures();
   const [text, setText] = useState(task.text || '');
   const [desc, setDesc] = useState(task.description || '');
   const [isDescEditing, setIsDescEditing] = useState(false);
@@ -140,7 +141,7 @@ const MobileTaskCard = memo(function MobileTaskCard({
         </span>
         <button
           onClick={cyclePriority}
-          className={`mt-1 w-4 h-4 rounded-full text-[8px] font-black leading-none flex items-center justify-center ${PRIORITY[priority].cls}`}
+          className={`${betaFeatures ? '' : 'hidden'} mt-1 w-4 h-4 rounded-full text-[8px] font-black leading-none flex items-center justify-center ${PRIORITY[priority].cls}`}
           title={`Priority: ${priority}`}
           aria-label={`Priority ${priority}, tap to change`}
         >
