@@ -39,3 +39,5 @@ yarn-error.log*
 
 # Firebase Admin SDK key
 *-firebase-adminsdk-*.json
+
+.env*.local

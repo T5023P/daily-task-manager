@@ -14,15 +14,15 @@ export default function Paywall({ user, onSubscribed }) {
   const plans = {
     monthly: {
       label: 'Monthly',
-      price: '₹99',
+      price: '₹499',
       period: '/month',
       planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_MONTHLY,
     },
     annual: {
       label: 'Annual',
-      price: '₹1,999',
+      price: '₹4,999',
       period: '/year',
-      badge: 'Save 33%',
+      badge: 'Save 16%',
       planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ANNUAL,
     },
   };
@@ -133,7 +133,7 @@ export default function Paywall({ user, onSubscribed }) {
                 <div className="text-xs text-gray-500 dark:text-gray-400">Billed every month</div>
               </div>
               <div className="text-right">
-                <div className="text-xl font-black text-gray-900 dark:text-white">₹99</div>
+                <div className="text-xl font-black text-gray-900 dark:text-white">₹499</div>
                 <div className="text-xs text-gray-500">/month</div>
               </div>
             </div>
@@ -148,7 +148,7 @@ export default function Paywall({ user, onSubscribed }) {
             }`}
           >
             <div className="absolute -top-2.5 right-4 px-2 py-0.5 bg-green-500 text-white text-[10px] font-bold rounded-full uppercase">
-              Save 33%
+              Save 16%
             </div>
             <div className="flex justify-between items-center">
               <div>
@@ -156,7 +156,7 @@ export default function Paywall({ user, onSubscribed }) {
                 <div className="text-xs text-gray-500 dark:text-gray-400">Billed once a year</div>
               </div>
               <div className="text-right">
-                <div className="text-xl font-black text-gray-900 dark:text-white">₹1,999</div>
+                <div className="text-xl font-black text-gray-900 dark:text-white">₹4,999</div>
                 <div className="text-xs text-gray-500">/year</div>
               </div>
             </div>
