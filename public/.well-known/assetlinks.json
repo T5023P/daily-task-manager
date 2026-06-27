@@ -7,7 +7,8 @@
       "namespace": "android_app",
       "package_name": "com.businesstask.daily",
       "sha256_cert_fingerprints": [
-        "EE:18:37:7A:FD:16:43:97:AA:2E:9C:10:38:BC:49:9F:F5:4A:D1:09:5C:1B:37:3A:F0:14:13:2E:3F:3E:C9:42"
+        "EE:18:37:7A:FD:16:43:97:AA:2E:9C:10:38:BC:49:9F:F5:4A:D1:09:5C:1B:37:3A:F0:14:13:2E:3F:3E:C9:42",
+        "D8:9F:81:BD:AB:49:90:29:33:58:50:CB:CF:6A:BF:91:A3:9A:63:21:82:AC:92:A4:84:FA:25:6D:BF:34:F7:66"
       ]
     }
   },
@@ -19,7 +20,8 @@
       "namespace": "android_app",
       "package_name": "com.business.com",
       "sha256_cert_fingerprints": [
-        "4F:9F:32:A8:9B:37:55:FD:79:8C:0E:E4:05:28:13:38:94:85:BC:F7:19:E3:2F:7D:80:67:56:BA:49:FC:CB:09"
+        "4F:9F:32:A8:9B:37:55:FD:79:8C:0E:E4:05:28:13:38:94:85:BC:F7:19:E3:2F:7D:80:67:56:BA:49:FC:CB:09",
+        "D8:9F:81:BD:AB:49:90:29:33:58:50:CB:CF:6A:BF:91:A3:9A:63:21:82:AC:92:A4:84:FA:25:6D:BF:34:F7:66"
       ]
     }
   }
