@@ -20,7 +20,7 @@ export default function Paywall({ user, onSubscribed }) {
     },
     annual: {
       label: 'Annual',
-      price: '₹4,999',
+      price: '₹4999',
       period: '/year',
       badge: 'Save 16%',
       planId: process.env.NEXT_PUBLIC_RAZORPAY_PLAN_ANNUAL,
@@ -110,7 +110,7 @@ export default function Paywall({ user, onSubscribed }) {
         </div>
         <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight text-center">Trial Expired</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-8 text-center">
-          Your 7-day free trial has ended. Subscribe to continue.
+          Your 1-year free trial has ended. Subscribe to continue.
         </p>
 
         {error && (
@@ -156,7 +156,7 @@ export default function Paywall({ user, onSubscribed }) {
                 <div className="text-xs text-gray-500 dark:text-gray-400">Billed once a year</div>
               </div>
               <div className="text-right">
-                <div className="text-xl font-black text-gray-900 dark:text-white">₹4,999</div>
+                <div className="text-xl font-black text-gray-900 dark:text-white">₹4999</div>
                 <div className="text-xs text-gray-500">/year</div>
               </div>
             </div>

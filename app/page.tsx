@@ -36,7 +36,8 @@ import { UserProvider } from '../context/UserContext';
 
 const ADMIN_EMAILS = [
   'topsecuritieslko@gmail.com',
-  'arsh5023siddiqui@gmail.com'
+  'arsh5023siddiqui@gmail.com',
+  'test@test.in'
 ];
 
 const BYPASS_EMAILS = [
@@ -128,7 +129,7 @@ export default function DailyTaskManager() {
                 const trialStart = new Date(data.trialStartDate);
                 const now = new Date();
                 const daysPassed = Math.floor((now.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24));
-                if (daysPassed > 7) {
+                if (daysPassed > 365) {
                   setAuthUser(user);
                   setTrialExpired(true);
                   setNeedsPhoneVerification(false);
@@ -963,13 +964,14 @@ export default function DailyTaskManager() {
                 tasks={dailyTasksCombined} dateStr={dateStr} sectionKey="A" onAddClick={() => setActiveSection('A')}
                 printSelection={printSelection} onPrintToggle={handlePrintToggle} onToast={showToast}
                 filter={taskFilter} onFilterChange={setTaskFilter}
+                isCalendarOpen={isCalendarOpen}
               />
             </div>
 
             <div className="lg:col-span-1 flex flex-col gap-6 h-full">
               <div className="flex-none">
                 <PaymentSection
-                  title="Payment Received" icon={FiCreditCard} colorClass={{ border: 'border-purple-200', text: 'text-purple-700' }} bgClass="bg-purple-50"
+                  title="Short Payment Reminder" icon={FiCreditCard} colorClass={{ border: 'border-purple-200', text: 'text-purple-700' }} bgClass="bg-purple-50"
                   tasks={tasksC} dateStr={dateStr} printSelection={printSelection} onPrintToggle={handlePrintToggle} onToast={showToast}
                 />
               </div>
@@ -1213,6 +1215,7 @@ export default function DailyTaskManager() {
               onToast={showToast}
               filter={taskFilter}
               onFilterChange={setTaskFilter}
+              isCalendarOpen={isCalendarOpen}
             />
 
             {/* Compact bottom: Payments + Long Term Orders */}
