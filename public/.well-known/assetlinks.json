@@ -10,5 +10,17 @@
         "EE:18:37:7A:FD:16:43:97:AA:2E:9C:10:38:BC:49:9F:F5:4A:D1:09:5C:1B:37:3A:F0:14:13:2E:3F:3E:C9:42"
       ]
     }
+  },
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.business.com",
+      "sha256_cert_fingerprints": [
+        "4F:9F:32:A8:9B:37:55:FD:79:8C:0E:E4:05:28:13:38:94:85:BC:F7:19:E3:2F:7D:80:67:56:BA:49:FC:CB:09"
+      ]
+    }
   }
 ]
