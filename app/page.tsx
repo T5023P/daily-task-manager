@@ -30,7 +30,7 @@ import LongTermOrdersSection from '../components/LongTermOrdersSection';
 import GlanceModal from '../components/GlanceModal';
 import AddTaskModal from '../components/AddTaskModal';
 import DateNavigator from '../components/DateNavigator';
-import PhoneVerification from '../components/PhoneVerification';
+// Phone verification removed
 import Paywall from '../components/Paywall';
 import { UserProvider } from '../context/UserContext';
 
@@ -77,7 +77,7 @@ export default function DailyTaskManager() {
   const [passwordInput, setPasswordInput] = useState('');
   const [emailLoading, setEmailLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
-  const [needsPhoneVerification, setNeedsPhoneVerification] = useState(false);
+  // const [needsPhoneVerification, setNeedsPhoneVerification] = useState(false);
   const [trialExpired, setTrialExpired] = useState(false);
   const [isPrintDropdownOpen, setIsPrintDropdownOpen] = useState(false);
   const [pendingPrintFormat, setPendingPrintFormat] = useState<'print' | 'pdf'>('print');
@@ -100,13 +100,13 @@ export default function DailyTaskManager() {
           // Admin bypass — no trial, no phone verification
           setAuthUser(user);
           setAccessDenied(false);
-          setNeedsPhoneVerification(false);
+          // setNeedsPhoneVerification(false);
           setTrialExpired(false);
         } else if (user.email && BYPASS_EMAILS.includes(lowerEmail)) {
           // VIP bypass — keeps their own isolated/private data, but bypasses paywall & phone verification
           setAuthUser(user);
           setAccessDenied(false);
-          setNeedsPhoneVerification(false);
+          // setNeedsPhoneVerification(false);
           setTrialExpired(false);
         } else if (user.email) {
           // Regular user — check trial
@@ -115,7 +115,7 @@ export default function DailyTaskManager() {
             if (!userDoc.exists() || !userDoc.data().verified) {
               // Needs phone verification
               setAuthUser(user);
-              setNeedsPhoneVerification(true);
+              // setNeedsPhoneVerification(true);
               setTrialExpired(false);
             } else {
               // Check trial expiry or active subscription
@@ -124,7 +124,7 @@ export default function DailyTaskManager() {
                 // Paid user — full access
                 setAuthUser(user);
                 setTrialExpired(false);
-                setNeedsPhoneVerification(false);
+                // setNeedsPhoneVerification(false);
               } else {
                 const trialStart = new Date(data.trialStartDate);
                 const now = new Date();
@@ -132,7 +132,7 @@ export default function DailyTaskManager() {
                 if (daysPassed > 365) {
                   setAuthUser(user);
                   setTrialExpired(true);
-                  setNeedsPhoneVerification(false);
+                  // setNeedsPhoneVerification(false);
                 } else {
                   setAuthUser(user);
                   setTrialExpired(false);
@@ -631,14 +631,7 @@ export default function DailyTaskManager() {
     );
   }
 
-  if (authUser && needsPhoneVerification) {
-    return (
-      <PhoneVerification
-        user={authUser}
-        onVerified={() => setNeedsPhoneVerification(false)}
-      />
-    );
-  }
+  // Phone verification flow removed
 
   // Paywall bypassed per user request
   /*
