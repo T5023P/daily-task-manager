@@ -16,9 +16,26 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // DUMMY USER SCENARIO:
-  const [user, setUser] = useState({ name: "Guest", role: "admin" });
-  const [loading, setLoading] = useState(false);
+  // Use real or admin authentication based on env vars
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Set loading to false on mount so page.tsx can handle its own auth
+  useEffect(() => {
+    setLoading(false);
+  }, []);
+
+  // Admin login using env vars
+  const adminLogin = (email, password) => {
+    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+    const adminPass = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
+    if (email === adminEmail && password === adminPass) {
+      setUser({ name: 'Admin', role: 'admin' });
+      setLoading(false);
+      return true;
+    }
+    return false;
+  };
 
   // REAL AUTHENTICATION SCENARIO (Uncomment to enable):
   /*
@@ -35,8 +52,8 @@ export const AuthProvider = ({ children }) => {
   */
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, loading, adminLogin }}>
+      {children}
     </AuthContext.Provider>
   );
 };

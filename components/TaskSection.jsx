@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiChevronDown, FiChevronUp, FiPlus } from 'react-icons/fi';
 import TaskRow from './TaskRow';
@@ -27,7 +27,8 @@ export default function TaskSection({
   onPrintToggle,
   onToast,
   filter = 'all',
-  onFilterChange
+  onFilterChange,
+  isCalendarOpen = false
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [viewMode, setViewMode] = useState('tasks'); // 'tasks' | 'priority' | 'outstanding'
@@ -37,8 +38,34 @@ export default function TaskSection({
   // Non-beta users are always locked to the plain Tasks view
   const effectiveViewMode = betaFeatures ? viewMode : 'tasks';
 
+  const [isHeaderButtonVisible, setIsHeaderButtonVisible] = useState(true);
+  const headerButtonRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsHeaderButtonVisible(entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+
+    const currentButton = headerButtonRef.current;
+    if (currentButton) {
+      observer.observe(currentButton);
+    }
+
+    return () => {
+      if (currentButton) {
+        observer.unobserve(currentButton);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsExpanded(true);
     }
   }, []);
@@ -62,9 +89,7 @@ export default function TaskSection({
 
   const filteredTasks = effectiveViewMode === 'priority'
     ? (priorityFilter === 'all' ? sortByPriority(tasks) : sortByPriority(tasks.filter(t => getPriority(t) === priorityFilter)))
-    : sortByPriority(statusFilteredTasks);
-
-  const PRIORITY_ORDER = ['high', 'medium', 'low'];
+    : statusFilteredTasks;
   const PRIORITY_META = {
     high: { label: 'High', chip: 'bg-red-600 text-white', idle: 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' },
     medium: { label: 'Medium', chip: 'bg-amber-500 text-white', idle: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' },
@@ -117,6 +142,7 @@ export default function TaskSection({
         </div>
         <div className="flex items-center gap-2">
           <button 
+            ref={headerButtonRef}
             onClick={(e) => { e.stopPropagation(); onAddClick(); }}
             className="flex px-3 py-1.5 rounded-lg text-sm font-bold bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-200 shadow-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50 items-center gap-1"
           >
@@ -233,6 +259,27 @@ export default function TaskSection({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {sectionKey === 'A' && (
+        <AnimatePresence>
+          {!isHeaderButtonVisible && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: 20 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={(e) => { e.stopPropagation(); onAddClick(); }}
+              className={`fixed ${
+                isCalendarOpen ? 'bottom-36' : 'bottom-6'
+              } right-4 sm:right-6 z-40 flex items-center gap-1.5 sm:gap-2 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-full bg-white hover:bg-gray-50 text-gray-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border border-gray-200 dark:border-slate-700 shadow-2xl font-bold text-xs sm:text-sm transition-all duration-300 select-none cursor-pointer`}
+            >
+              <FiPlus size={18} className="text-blue-600 dark:text-blue-400" />
+              <span>Add Task</span>
+            </motion.button>
+          )}
+        </AnimatePresence>
+      )}
     </div>
   );
 }

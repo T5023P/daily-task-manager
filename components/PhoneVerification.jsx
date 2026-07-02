@@ -48,12 +48,16 @@ export default function PhoneVerification({ user, onVerified }) {
 
     setLoading(true);
     try {
-      // Check if phone already used
+      // Check if phone already used (limit to 5 accounts per number)
       const phoneDoc = await getDoc(doc(db, 'phones', cleaned));
       if (phoneDoc.exists()) {
-        setError('This phone number has already been used for a trial.');
-        setLoading(false);
-        return;
+        const data = phoneDoc.data();
+        const uids = data.uids || (data.uid ? [data.uid] : []);
+        if (uids.length >= 5) {
+          setError('This phone number has already been used for the maximum limit of 5 accounts.');
+          setLoading(false);
+          return;
+        }
       }
 
       const verifier = setupRecaptcha();
@@ -92,6 +96,16 @@ export default function PhoneVerification({ user, onVerified }) {
       const cleaned = phone.replace(/\s/g, '');
       const now = new Date().toISOString();
 
+      const phoneDoc = await getDoc(doc(db, 'phones', cleaned));
+      let uids = [];
+      if (phoneDoc.exists()) {
+        const data = phoneDoc.data();
+        uids = data.uids || (data.uid ? [data.uid] : []);
+      }
+      if (!uids.includes(user.uid)) {
+        uids.push(user.uid);
+      }
+
       // Store user trial info
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
@@ -102,8 +116,8 @@ export default function PhoneVerification({ user, onVerified }) {
 
       // Mark phone as used
       await setDoc(doc(db, 'phones', cleaned), {
-        uid: user.uid,
-        usedAt: now,
+        uids,
+        lastUsedAt: now,
       });
 
       onVerified();
@@ -112,18 +126,61 @@ export default function PhoneVerification({ user, onVerified }) {
       if (err.code === 'auth/invalid-verification-code') {
         setError('Invalid OTP. Please try again.');
       } else if (err.code === 'auth/credential-already-in-use') {
-        setError('This phone is linked to another account.');
+        // Phone is already linked in Firebase Auth to another account, but OTP is valid!
+        // Allow up to 5 accounts per phone number
+        try {
+          const cleaned = phone.replace(/\s/g, '');
+          const now = new Date().toISOString();
+          const phoneDoc = await getDoc(doc(db, 'phones', cleaned));
+          let uids = [];
+          if (phoneDoc.exists()) {
+            const data = phoneDoc.data();
+            uids = data.uids || (data.uid ? [data.uid] : []);
+          }
+          
+          if (!uids.includes(user.uid)) {
+            uids.push(user.uid);
+          }
+          
+          if (uids.length > 5) {
+            setError('This phone number has already been used for the maximum limit of 5 accounts.');
+          } else {
+            await setDoc(doc(db, 'users', user.uid), {
+              email: user.email,
+              phone: cleaned,
+              trialStartDate: now,
+              verified: true,
+            }, { merge: true });
+            
+            await setDoc(doc(db, 'phones', cleaned), {
+              uids,
+              lastUsedAt: now,
+            });
+            onVerified();
+          }
+        } catch (dbErr) {
+          setError(dbErr.message || 'Database update failed');
+        }
       } else if (err.code === 'auth/provider-already-linked') {
         // Phone already linked to this account — just save trial
         const cleaned = phone.replace(/\s/g, '');
         const now = new Date().toISOString();
+        const phoneDoc = await getDoc(doc(db, 'phones', cleaned));
+        let uids = [];
+        if (phoneDoc.exists()) {
+          const data = phoneDoc.data();
+          uids = data.uids || (data.uid ? [data.uid] : []);
+        }
+        if (!uids.includes(user.uid)) {
+          uids.push(user.uid);
+        }
         await setDoc(doc(db, 'users', user.uid), {
           email: user.email,
           phone: cleaned,
           trialStartDate: now,
           verified: true,
         }, { merge: true });
-        await setDoc(doc(db, 'phones', cleaned), { uid: user.uid, usedAt: now });
+        await setDoc(doc(db, 'phones', cleaned), { uids, lastUsedAt: now });
         onVerified();
       } else {
         setError(err.message || 'Verification failed');

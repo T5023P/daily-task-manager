@@ -65,19 +65,22 @@ export default function RootLayout({
           `
         }} />
         <link rel="manifest" href="/manifest.json" />
-        {/* Service Worker registration script */}
+        {/* Service Worker Cleanup Script */}
         <script dangerouslySetInnerHTML={{
           __html: `
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/service-worker.js').then(
-                  function(reg) {
-                    console.log('SW registered with scope:', reg.scope);
-                  },
-                  function(err) {
-                    console.log('SW registration failed:', err);
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  let hasCleared = false;
+                  for(let registration of registrations) {
+                    registration.unregister();
+                    hasCleared = true;
                   }
-                );
+                  if (hasCleared && !sessionStorage.getItem('sw_cleared')) {
+                    sessionStorage.setItem('sw_cleared', 'true');
+                    window.location.reload(true);
+                  }
+                });
               });
             }
           `

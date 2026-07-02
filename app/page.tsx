@@ -640,6 +640,8 @@ export default function DailyTaskManager() {
     );
   }
 
+  // Paywall bypassed per user request
+  /*
   if (authUser && trialExpired) {
     return (
       <Paywall
@@ -648,6 +650,7 @@ export default function DailyTaskManager() {
       />
     );
   }
+  */
 
   if (!authUser) {
     const handleSignIn = async () => {

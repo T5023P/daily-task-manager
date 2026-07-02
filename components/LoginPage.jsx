@@ -1,11 +1,9 @@
 "use client";
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { signInWithGoogle } from '../lib/auth';
+import { signInWithGoogle, auth } from '../lib/auth';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../lib/auth';
-
+import { useAuth } from '../context/AuthContext';
 export default function LoginPage({ onSuccess }) {
   // UI mode toggle
   const [useEmailLogin, setUseEmailLogin] = useState(false);
@@ -25,23 +23,24 @@ export default function LoginPage({ onSuccess }) {
   // ---------------------------------------------------------------
   // Simple password handler (kept for backward compatibility)
   // ---------------------------------------------------------------
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const correctPassword = process.env.NEXT_PUBLIC_APP_PASSWORD || "Top@123";
-    if (password === correctPassword) {
-      if (rememberMe) {
-        localStorage.setItem('app_authenticated', 'true');
-      } else {
-        sessionStorage.setItem('app_authenticated', 'true');
-      }
-      onSuccess();
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  const { adminLogin } = useAuth(); // get adminLogin from context
+  const success = adminLogin('test@test.in', password);
+  if (success) {
+    if (rememberMe) {
+      localStorage.setItem('app_authenticated', 'true');
     } else {
-      setError('Incorrect password');
-      setShouldShake(true);
-      setPassword('');
-      setTimeout(() => setShouldShake(false), 500);
+      sessionStorage.setItem('app_authenticated', 'true');
     }
-  };
+    onSuccess();
+  } else {
+    setError('Incorrect admin credentials');
+    setShouldShake(true);
+    setPassword('');
+    setTimeout(() => setShouldShake(false), 500);
+  }
+};
 
   // ---------------------------------------------------------------
   // Email & password sign‑in using Firebase Auth

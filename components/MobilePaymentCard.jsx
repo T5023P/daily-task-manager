@@ -206,7 +206,7 @@ const MobilePaymentCard = memo(function MobilePaymentCard({
           <FiTrash2 size={12} /> Delete
         </button>
         <span className="text-[9px] uppercase font-bold tracking-wider text-gray-400 dark:text-gray-600">
-          Payment Received
+          Short Payment Reminder
         </span>
       </div>
     </motion.div>

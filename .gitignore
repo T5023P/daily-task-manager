@@ -27,6 +27,12 @@ yarn-error.log*
 
 # local env files
 .env*.local
+
+# PWA generated service worker files
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
+/public/workbox-*.js.map
 .env
 .env.development.local
 .env.test.local
