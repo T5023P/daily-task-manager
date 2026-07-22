@@ -38,12 +38,16 @@ If you prefer deploying directly from your terminal:
 
 Because this app includes a Web Manifest and Service Worker, it can be installed natively on your devices!
 
-### Android (Chrome)
+### Android (Chrome & Google Play TWA)
 1. Open the deployed Vercel link in Google Chrome on your Android device.
-2. Tap the **Install App** button in the header, OR
-3. Tap the 3-dot menu in the top right corner of Chrome.
-4. Select **Add to Home screen**.
-5. The app will install and behave like a native APK.
+2. Tap the **Install App** button in the header, OR select **Add to Home screen**.
+3. Target SDK Compliance: Configured to target **Android 16 (API Level 36)** via `twa-manifest.json` and `android/app/build.gradle` for Google Play Console requirements.
+
+## Task Copy & Midnight Rollover Algorithm
+1. **Direct Previous Day Copy**: When viewing any date sheet (e.g. 22nd), clicking "Copy Previous Tasks" automatically pulls unfinished red (Pending) & yellow (In Progress) tasks from the previous date (21st) directly into the currently active sheet as yellow tasks without forcing you to switch sheets first.
+2. **Automated Midnight Rollover**: Automatically after 12 midnight, opening today's sheet checks yesterday for unfinished tasks and carries them over.
+3. **Low Task Count & Weekend Protection**: If the previous sheet has 5 or fewer tasks (e.g., 3-5 tasks due to a weekend/Sunday or off-day), auto-copy prompts the user with options to copy from yesterday, auto-detect the last active workday (e.g. Friday), or pick a custom date.
+
 
 ### Desktop (Chrome)
 1. Open the deployed Vercel link in Google Chrome on your computer.

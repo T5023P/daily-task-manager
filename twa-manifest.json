@@ -1,0 +1,31 @@
+{
+  "packageId": "shop.businesstask.twa",
+  "host": "businesstask.shop",
+  "name": "Daily Task Manager",
+  "launcherName": "DailyTasks",
+  "themeColor": "#0F172A",
+  "navigationColor": "#0F172A",
+  "backgroundColor": "#0F172A",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://businesstask.shop/icon-512x512.png",
+  "maskableIconUrl": "https://businesstask.shop/icon-512x512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://businesstask.shop/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": "true",
+  "isChromeOSOnly": false,
+  "isPageTransitionsEnabled": false,
+  "display": "standalone",
+  "orientation": "portrait",
+  "minSdkVersion": 24,
+  "targetSdkVersion": 36,
+  "compileSdkVersion": 36
+}

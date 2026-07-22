@@ -2,12 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { format, addDays, startOfToday } from 'date-fns';
-import { FiCopy, FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp, FiLogOut, FiPlus, FiTrash2, FiRotateCcw, FiEye } from 'react-icons/fi';
+import { format, addDays, subDays, parseISO, startOfToday } from 'date-fns';
+import { FiCopy, FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp, FiLogOut, FiPlus, FiTrash2, FiRotateCcw, FiEye, FiBriefcase } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   getTasksForDate,
   copyUnfinishedTasksToToday,
+  copyUnfinishedTasksToTargetDate,
+  getUnfinishedTasksForDate,
+  findPreviousActiveDate,
   getLongTermOrders,
   addPayment,
   addLongTermOrder,
@@ -27,6 +30,13 @@ import autoTable from 'jspdf-autotable';
 import TaskSection from '../components/TaskSection';
 import PaymentSection from '../components/PaymentSection';
 import LongTermOrdersSection from '../components/LongTermOrdersSection';
+/**
+ * ⚠️ ADMIN-ONLY IMPORT — Daily Business Tasks Section (Section Key: "E")
+ * This component is ONLY rendered for admin emails. Do NOT remove or merge
+ * with other sections in future updates. See DailyBusinessTaskSection.jsx
+ * for full documentation.
+ */
+import DailyBusinessTaskSection from '../components/DailyBusinessTaskSection';
 import GlanceModal from '../components/GlanceModal';
 import AddTaskModal from '../components/AddTaskModal';
 import DateNavigator from '../components/DateNavigator';
@@ -36,8 +46,7 @@ import { UserProvider } from '../context/UserContext';
 
 const ADMIN_EMAILS = [
   'topsecuritieslko@gmail.com',
-  'arsh5023siddiqui@gmail.com',
-  'test@test.in'
+  'arsh5023siddiqui@gmail.com'
 ];
 
 const BYPASS_EMAILS = [
@@ -64,6 +73,12 @@ export default function DailyTaskManager() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(true);
   const [longTermOrders, setLongTermOrders] = useState<any[]>([]);
   const [taskFilter, setTaskFilter] = useState('all');
+  /**
+   * ⚠️ ADMIN-ONLY STATE — Independent filter for the Daily Business Tasks
+   * section (section key "E"). This is separate from `taskFilter` which
+   * controls the main BUSINESS TASK section. Do NOT merge these two states.
+   */
+  const [sectionEFilter, setSectionEFilter] = useState('all');
   const [printType, setPrintType] = useState('selected');
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [pendingPrintType, setPendingPrintType] = useState<string | null>(null);
@@ -89,6 +104,17 @@ export default function DailyTaskManager() {
   const [ltoDeliveryDate, setLtoDeliveryDate] = useState('');
   const [showCopyDatePicker, setShowCopyDatePicker] = useState(false);
   const [showGlance, setShowGlance] = useState(false);
+  const [lowTaskPrompt, setLowTaskPrompt] = useState<{
+    isOpen: boolean;
+    sourceDateStr: string;
+    targetDateStr: string;
+    unfinishedTasksCount: number;
+    priorActiveDate?: {
+      dateStr: string;
+      count: number;
+      daysAgo: number;
+    } | null;
+  } | null>(null);
 
   // Firebase Auth listener
   useEffect(() => {
@@ -96,7 +122,7 @@ export default function DailyTaskManager() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const lowerEmail = user.email ? user.email.toLowerCase() : '';
-        if (user.email && ADMIN_EMAILS.includes(user.email)) {
+        if (lowerEmail && ADMIN_EMAILS.includes(lowerEmail)) {
           // Admin bypass — no trial, no phone verification
           setAuthUser(user);
           setAccessDenied(false);
@@ -136,7 +162,7 @@ export default function DailyTaskManager() {
                 } else {
                   setAuthUser(user);
                   setTrialExpired(false);
-                  setNeedsPhoneVerification(false);
+                  // Phone verification removed
                 }
               }
             }
@@ -144,7 +170,7 @@ export default function DailyTaskManager() {
           } catch (err) {
             console.error('Trial check error:', err);
             setAuthUser(user);
-            setNeedsPhoneVerification(false);
+            // Phone verification removed
             setTrialExpired(false);
             setAccessDenied(false);
           }
@@ -157,7 +183,7 @@ export default function DailyTaskManager() {
       } else {
         setAuthUser(null);
         setAccessDenied(false);
-        setNeedsPhoneVerification(false);
+        // Phone verification removed
         setTrialExpired(false);
       }
       setCheckingAuth(false);
@@ -281,9 +307,69 @@ export default function DailyTaskManager() {
 
   useEffect(() => {
     setTaskFilter('all');
+    /* ⚠️ ADMIN-ONLY: Also reset the section E filter on date change */
+    setSectionEFilter('all');
   }, [dateStr]);
 
-  // Copy with confirmation
+  // Automated Midnight Rollover (Runs after 12 at night when opening today's sheet)
+  useEffect(() => {
+    const runAutoMidnightRollover = async () => {
+      if (!uid || !dateStr || loading) return;
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      
+      // Only execute if on today's sheet and today's sheet currently has 0 tasks
+      if (dateStr !== todayStr || tasks.length > 0) return;
+
+      const lastAutoCopy = localStorage.getItem(`lastAutoCopy_${uid}`);
+      if (lastAutoCopy === todayStr) return; // Already checked/performed today
+
+      const prevDateStr = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      const prevUnfinished = await getUnfinishedTasksForDate(uid, prevDateStr);
+      const prevCount = prevUnfinished.length;
+
+      if (prevCount > 5) {
+        localStorage.setItem(`lastAutoCopy_${uid}`, todayStr);
+        const res = await copyUnfinishedTasksToTargetDate(uid, prevDateStr, todayStr);
+        if (res?.copiedCount > 0) {
+          showToast(`Midnight Rollover: Auto-copied ${res.copiedCount} task(s) from yesterday to Today!`, "green");
+        }
+      } else if (prevCount > 0 || (await findPreviousActiveDate(uid, prevDateStr, 7))) {
+        localStorage.setItem(`lastAutoCopy_${uid}`, todayStr);
+        const priorActive = await findPreviousActiveDate(uid, prevDateStr, 7);
+        setLowTaskPrompt({
+          isOpen: true,
+          sourceDateStr: prevDateStr,
+          targetDateStr: todayStr,
+          unfinishedTasksCount: prevCount,
+          priorActiveDate: priorActive
+        });
+      }
+    };
+
+    runAutoMidnightRollover();
+  }, [uid, dateStr, loading, tasks.length]);
+
+  const executeCopyFromSource = async (sourceDateStr: string, targetDateStr: string) => {
+    if (!uid) return;
+    setIsCopying(true);
+    try {
+      const result = await copyUnfinishedTasksToTargetDate(uid, sourceDateStr, targetDateStr);
+      const copiedCount = result?.copiedCount || 0;
+      const formattedSource = format(parseISO(sourceDateStr), 'd MMM');
+      if (copiedCount > 0) {
+        showToast(`${copiedCount} task${copiedCount > 1 ? 's' : ''} copied from ${formattedSource}`, "green");
+      } else {
+        showToast(`No new tasks to copy from ${formattedSource}.`, "yellow");
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Copy failed', 'red');
+    } finally {
+      setIsCopying(false);
+      setLowTaskPrompt(null);
+    }
+  };
+
+  // Copy previous tasks to currently viewed sheet (dateStr)
   const handleCopyUnfinished = async () => {
     // If tasks are selected via checkbox, show date picker for selective copy
     if (selectedPrintCount > 0) {
@@ -291,17 +377,47 @@ export default function DailyTaskManager() {
       return;
     }
     
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    if (dateStr === todayStr) {
-      showToast("You are already on today's sheet!", "yellow");
-      return;
+    if (!uid || !dateStr) return;
+
+    setIsCopying(true);
+    try {
+      const currentObj = parseISO(dateStr);
+      const prevDateObj = subDays(currentObj, 1);
+      const prevDateStr = format(prevDateObj, 'yyyy-MM-dd');
+
+      const prevUnfinished = await getUnfinishedTasksForDate(uid, prevDateStr);
+      const prevCount = prevUnfinished.length;
+
+      const priorActive = await findPreviousActiveDate(uid, prevDateStr, 7);
+
+      if (prevCount > 5) {
+        await executeCopyFromSource(prevDateStr, dateStr);
+      } else if (prevCount > 0 && prevCount <= 5) {
+        setLowTaskPrompt({
+          isOpen: true,
+          sourceDateStr: prevDateStr,
+          targetDateStr: dateStr,
+          unfinishedTasksCount: prevCount,
+          priorActiveDate: priorActive
+        });
+      } else {
+        if (priorActive) {
+          setLowTaskPrompt({
+            isOpen: true,
+            sourceDateStr: prevDateStr,
+            targetDateStr: dateStr,
+            unfinishedTasksCount: 0,
+            priorActiveDate: priorActive
+          });
+        } else {
+          showToast("No unfinished tasks found on previous days to copy.", "yellow");
+        }
+      }
+    } catch (err: any) {
+      showToast("Error checking previous tasks", "red");
+    } finally {
+      setIsCopying(false);
     }
-    const unfinishedCount = tasks.filter(t => t.color !== 'green').length;
-    if (unfinishedCount === 0) {
-      showToast("All tasks are completed! Nothing to copy.", "green");
-      return;
-    }
-    setShowCopyConfirm(true);
   };
 
   const handleCopySelectedToDate = async (targetDateStr: string) => {
@@ -556,6 +672,14 @@ export default function DailyTaskManager() {
   const dailyTasksCombined = tasks.filter(t => !t.section || t.section === 'A' || t.section === 'B');
   const tasksC = tasks.filter(t => t.section === 'C');
 
+  /**
+   * ⚠️ ADMIN-ONLY — Filter tasks belonging to section "E" (Daily Business Tasks).
+   * These are stored in the same Firestore document as other daily tasks but
+   * isolated by their section key. This array is ONLY used when isAdmin is true.
+   * Do NOT include section "E" tasks in dailyTasksCombined or tasksC.
+   */
+  const tasksE = tasks.filter(t => t.section === 'E');
+
   const doneCount = dailyTasksCombined.filter(t => t.color === 'green').length;
   const pendingCount = dailyTasksCombined.filter(t => t.color === 'red').length;
   const inProgressCount = dailyTasksCombined.filter(t => t.color === 'yellow' || !t.color).length;
@@ -601,7 +725,8 @@ export default function DailyTaskManager() {
     }
   };
 
-  const sectionLabels: Record<string, string> = { A: 'Daily', B: 'Daily', C: 'Payment', D: 'Long-Term' };
+  /* ⚠️ Section E label added for admin-only Daily Business Tasks. Do NOT remove. */
+  const sectionLabels: Record<string, string> = { A: 'Daily', B: 'Daily', C: 'Payment', D: 'Long-Term', E: 'Business' };
   const colorLabels: Record<string, string> = { red: 'Pending', yellow: 'In Progress', green: 'Done' };
   const toastColorStyles: Record<string, string> = { red: 'bg-red-600', yellow: 'bg-yellow-500', green: 'bg-green-600', gray: 'bg-gray-900 dark:bg-gray-700' };
 
@@ -839,6 +964,17 @@ export default function DailyTaskManager() {
                       >
                         <FiClipboard size={14} className="text-blue-600" /> New Task
                       </button>
+                      {/* ⚠️ ADMIN-ONLY: Add Daily Business Task option (section E).
+                          This menu item is only visible to admin users. Do NOT
+                          remove or merge with the regular "New Task" option. */}
+                      {isAdmin && (
+                      <button
+                        onClick={() => { setDesktopAddMenuOpen(false); setActiveSection('E'); }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-teal-50 dark:hover:bg-[#273549] flex items-center gap-2 border-b border-gray-100 dark:border-[#334155]"
+                      >
+                        <FiBriefcase size={14} className="text-teal-600" /> Daily Business Task
+                      </button>
+                      )}
                       <button
                         onClick={() => { setDesktopAddMenuOpen(false); setLtoText(''); setLtoDeliveryDate(''); setMobileLtoModalOpen(true); }}
                         className="w-full text-left px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549] flex items-center gap-2 border-b border-gray-100 dark:border-[#334155]"
@@ -935,9 +1071,9 @@ export default function DailyTaskManager() {
               <FiPrinter size={16} /> <span className="hidden sm:inline">Print {taskFilter !== 'all' ? taskFilter.charAt(0).toUpperCase() + taskFilter.slice(1) : 'Filtered'}</span>
               {taskFilter !== 'all' && <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-md">{filteredPrintCount}</span>}
             </button>
-            <button onClick={handleCopyUnfinished} disabled={isCopying} className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-2.5 rounded-xl disabled:opacity-50">
+            <button onClick={handleCopyUnfinished} disabled={isCopying} className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-2.5 rounded-xl disabled:opacity-50 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
               {isCopying ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" /> : <FiCopy size={16} />}
-              <span className="hidden sm:inline">Copy to Today ({format(new Date(), 'd MMM')})</span>
+              <span className="hidden sm:inline">Copy Previous Tasks</span>
             </button>
             {betaFeatures && (
             <button onClick={() => setShowGlance(true)} className="flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
@@ -954,7 +1090,13 @@ export default function DailyTaskManager() {
           <div className="flex justify-center items-center py-24"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" /></div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
-            <div className="lg:col-span-2 h-full">
+            <div className="lg:col-span-2 h-full flex flex-col gap-6">
+              {/* ================================================================
+                  MAIN BUSINESS TASK SECTION (Section A/B)
+                  This section is collapsible. When isAdmin is true, the Daily
+                  Business Tasks section (E) appears below it — also collapsible.
+                  Users can independently collapse either section.
+                  ================================================================ */}
               <TaskSection
                 title="BUSINESS TASK" icon={FiClipboard} colorClass={{ border: 'border-blue-200', text: 'text-blue-700' }} bgClass="bg-blue-50"
                 tasks={dailyTasksCombined} dateStr={dateStr} sectionKey="A" onAddClick={() => setActiveSection('A')}
@@ -962,6 +1104,38 @@ export default function DailyTaskManager() {
                 filter={taskFilter} onFilterChange={setTaskFilter}
                 isCalendarOpen={isCalendarOpen}
               />
+
+              {/* ================================================================
+                  ⚠️ ADMIN-ONLY: DAILY BUSINESS TASKS SECTION (Section E)
+                  ================================================================
+                  This is a second, independent daily task list that is ONLY
+                  visible to admin emails (arsh5023siddiqui@gmail.com and
+                  topsecuritieslko@gmail.com).
+
+                  It uses section key "E" and has its own filter state
+                  (sectionEFilter) so it does NOT interfere with the main
+                  BUSINESS TASK section above.
+
+                  ⚠️ DO NOT remove, rename, or merge this with the main section
+                  in future updates unless explicitly requested by the admin.
+                  ================================================================ */}
+              {isAdmin && (
+                <DailyBusinessTaskSection
+                  title="DAILY BUSINESS TASK"
+                  icon={FiBriefcase}
+                  colorClass={{ border: 'border-teal-200', text: 'text-teal-700' }}
+                  bgClass="bg-teal-50"
+                  tasks={tasksE}
+                  dateStr={dateStr}
+                  onAddClick={() => setActiveSection('E')}
+                  printSelection={printSelection}
+                  onPrintToggle={handlePrintToggle}
+                  onToast={showToast}
+                  filter={sectionEFilter}
+                  onFilterChange={setSectionEFilter}
+                  isCalendarOpen={isCalendarOpen}
+                />
+              )}
             </div>
 
             <div className="lg:col-span-1 flex flex-col gap-6 h-full">
@@ -1165,6 +1339,16 @@ export default function DailyTaskManager() {
                     >
                       New Task
                     </button>
+                    {/* ⚠️ ADMIN-ONLY: Mobile add menu option for Daily Business Task (section E).
+                        Do NOT remove or merge with "New Task" in future updates. */}
+                    {isAdmin && (
+                    <button
+                      onClick={() => { setMobileAddMenuOpen(false); setActiveSection('E'); }}
+                      className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-tighter text-gray-800 dark:text-gray-200 hover:bg-teal-50 dark:hover:bg-[#273549] border-b border-gray-100 dark:border-[#334155]"
+                    >
+                      Daily Business Task
+                    </button>
+                    )}
                     <button
                       onClick={() => { setMobileAddMenuOpen(false); setLtoText(''); setLtoDeliveryDate(''); setMobileLtoModalOpen(true); }}
                       className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-tighter text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549] border-b border-gray-100 dark:border-[#334155]"
@@ -1197,6 +1381,7 @@ export default function DailyTaskManager() {
         ) : (
           <>
             {/* The TaskSection itself renders the mobile MobileTaskCard grid */}
+            {/* Mobile main BUSINESS TASK section (Section A/B) */}
             <TaskSection
               title="BUSINESS TASK"
               icon={FiClipboard}
@@ -1213,6 +1398,31 @@ export default function DailyTaskManager() {
               onFilterChange={setTaskFilter}
               isCalendarOpen={isCalendarOpen}
             />
+
+            {/* ================================================================
+                ⚠️ ADMIN-ONLY: MOBILE — Daily Business Tasks Section (Section E)
+                ================================================================
+                Same feature as the desktop version above. Independently
+                collapsible from the main BUSINESS TASK section.
+                Do NOT remove or merge in future updates.
+                ================================================================ */}
+            {isAdmin && (
+              <DailyBusinessTaskSection
+                title="DAILY BUSINESS TASK"
+                icon={FiBriefcase}
+                colorClass={{ border: 'border-teal-200', text: 'text-teal-700' }}
+                bgClass="bg-teal-50"
+                tasks={tasksE}
+                dateStr={dateStr}
+                onAddClick={() => setActiveSection('E')}
+                printSelection={printSelection}
+                onPrintToggle={handlePrintToggle}
+                onToast={showToast}
+                filter={sectionEFilter}
+                onFilterChange={setSectionEFilter}
+                isCalendarOpen={isCalendarOpen}
+              />
+            )}
 
             {/* Compact bottom: Payments + Long Term Orders */}
             <div className="flex flex-col gap-1.5 mt-1">
@@ -1582,36 +1792,171 @@ export default function DailyTaskManager() {
         )}
       </AnimatePresence>
 
-      {/* Quick date picker for copying selected tasks */}
+      {/* Low Task Count Prompt Modal */}
+      <AnimatePresence>
+        {lowTaskPrompt && lowTaskPrompt.isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]"
+              onClick={() => setLowTaskPrompt(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: '-50%', x: '-50%' }}
+              animate={{ opacity: 1, scale: 1, y: '-50%', x: '-50%' }}
+              exit={{ opacity: 0, scale: 0.95, y: '-50%', x: '-50%' }}
+              className="fixed top-1/2 left-1/2 bg-white dark:bg-[#1E293B] border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-2xl z-[70] w-[92%] max-w-md space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-xl text-amber-600 dark:text-amber-400 shrink-0">
+                  <FiAlertCircle size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                    Copy Tasks to Sheet ({format(parseISO(lowTaskPrompt.targetDateStr), 'dd MMM')})
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Low task count detected on previous sheet
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-[#0F172A] p-4 rounded-xl text-sm text-gray-700 dark:text-gray-300 space-y-2 border border-gray-100 dark:border-gray-800">
+                {lowTaskPrompt.unfinishedTasksCount > 0 ? (
+                  <p>
+                    Yesterday (<strong className="text-blue-600 dark:text-blue-400">{format(parseISO(lowTaskPrompt.sourceDateStr), 'dd MMM')}</strong>) has only <strong className="text-amber-600 dark:text-amber-400">{lowTaskPrompt.unfinishedTasksCount} unfinished task(s)</strong> (low count, e.g. Sunday or off day).
+                  </p>
+                ) : (
+                  <p>
+                    Yesterday (<strong className="text-blue-600 dark:text-blue-400">{format(parseISO(lowTaskPrompt.sourceDateStr), 'dd MMM')}</strong>) has <strong className="text-red-500">0 unfinished tasks</strong>.
+                  </p>
+                )}
+
+                {lowTaskPrompt.priorActiveDate && (
+                  <div className="text-xs text-emerald-600 dark:text-emerald-400 pt-2 border-t border-gray-200 dark:border-gray-800 font-medium">
+                    💡 Found active day from {lowTaskPrompt.priorActiveDate.daysAgo} day(s) ago ({format(parseISO(lowTaskPrompt.priorActiveDate.dateStr), 'dd MMM')}) with <strong>{lowTaskPrompt.priorActiveDate.count} tasks</strong>!
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2.5 pt-1">
+                {lowTaskPrompt.unfinishedTasksCount > 0 && (
+                  <button
+                    onClick={() => executeCopyFromSource(lowTaskPrompt.sourceDateStr, lowTaskPrompt.targetDateStr)}
+                    disabled={isCopying}
+                    className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isCopying && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />}
+                    Copy {lowTaskPrompt.unfinishedTasksCount} Task(s) from Yesterday ({format(parseISO(lowTaskPrompt.sourceDateStr), 'dd MMM')})
+                  </button>
+                )}
+
+                {lowTaskPrompt.priorActiveDate && (
+                  <button
+                    onClick={() => executeCopyFromSource(lowTaskPrompt.priorActiveDate!.dateStr, lowTaskPrompt.targetDateStr)}
+                    disabled={isCopying}
+                    className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isCopying && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />}
+                    Copy {lowTaskPrompt.priorActiveDate.count} Task(s) from {format(parseISO(lowTaskPrompt.priorActiveDate.dateStr), 'dd MMM')} (Prior Active Day)
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setLowTaskPrompt(null);
+                    setShowCopyDatePicker(true);
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-gray-100 dark:bg-[#273549] hover:bg-gray-200 dark:hover:bg-[#334155] text-gray-800 dark:text-gray-200 font-semibold text-xs sm:text-sm transition-all cursor-pointer"
+                >
+                  📅 Pick Custom Date to Copy From...
+                </button>
+
+                <button
+                  onClick={() => setLowTaskPrompt(null)}
+                  className="w-full py-2 text-xs font-semibold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Quick date picker for copying tasks */}
       <AnimatePresence>
         {showCopyDatePicker && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowCopyDatePicker(false)} />
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#1E293B] rounded-2xl p-6 shadow-2xl z-50 w-[90%] max-w-xs">
-              <h3 className="text-lg font-bold mb-1 text-gray-900 dark:text-gray-100">Copy {selectedPrintCount} task{selectedPrintCount > 1 ? 's' : ''} to:</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Pick a date below</p>
-              <div className="flex flex-col gap-2">
-                {[0, 1, 2, 3].map(offset => {
-                  const d = addDays(new Date(), offset);
-                  const dStr = format(d, 'yyyy-MM-dd');
-                  const isCurrentSheet = dStr === dateStr;
-                  return (
-                    <button
-                      key={offset}
-                      disabled={isCurrentSheet}
-                      onClick={() => handleCopySelectedToDate(dStr)}
-                      className={`w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition-colors ${
-                        isCurrentSheet
-                          ? 'bg-gray-100 dark:bg-[#273549] text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                          : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40'
-                      }`}
-                    >
-                      {offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : format(d, 'EEE, d MMM')}
-                      <span className="text-xs font-normal ml-2 opacity-60">{format(d, 'yyyy-MM-dd')}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              {selectedPrintCount > 0 ? (
+                <>
+                  <h3 className="text-lg font-bold mb-1 text-gray-900 dark:text-gray-100">Copy {selectedPrintCount} selected task{selectedPrintCount > 1 ? 's' : ''} to:</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Pick a target date</p>
+                  <div className="flex flex-col gap-2">
+                    {[0, 1, 2, 3].map(offset => {
+                      const d = addDays(new Date(), offset);
+                      const dStr = format(d, 'yyyy-MM-dd');
+                      const isCurrentSheet = dStr === dateStr;
+                      return (
+                        <button
+                          key={offset}
+                          disabled={isCurrentSheet}
+                          onClick={() => handleCopySelectedToDate(dStr)}
+                          className={`w-full text-left px-4 py-3 rounded-xl font-semibold text-sm transition-colors ${
+                            isCurrentSheet
+                              ? 'bg-gray-100 dark:bg-[#273549] text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                              : 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40'
+                          }`}
+                        >
+                          {offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : format(d, 'EEE, d MMM')}
+                          <span className="text-xs font-normal ml-2 opacity-60">{format(d, 'yyyy-MM-dd')}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg font-bold mb-1 text-gray-900 dark:text-gray-100">Copy Tasks FROM Date:</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Select source date to copy into this sheet ({format(parseISO(dateStr), 'dd MMM')})</p>
+                  <div className="flex flex-col gap-2">
+                    {[1, 2, 3, 4, 5, 7].map(offset => {
+                      const d = subDays(parseISO(dateStr), offset);
+                      const dStr = format(d, 'yyyy-MM-dd');
+                      return (
+                        <button
+                          key={offset}
+                          onClick={() => {
+                            setShowCopyDatePicker(false);
+                            executeCopyFromSource(dStr, dateStr);
+                          }}
+                          className="w-full text-left px-4 py-2.5 rounded-xl font-semibold text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors flex items-center justify-between"
+                        >
+                          <span>{offset === 1 ? 'Yesterday' : `${offset} days ago`}</span>
+                          <span className="text-xs opacity-70">{format(d, 'EEE, d MMM')}</span>
+                        </button>
+                      );
+                    })}
+                    <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-1">
+                      <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Or pick exact date:</label>
+                      <input
+                        type="date"
+                        className="w-full px-3 py-2 text-sm rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-[#0F172A] text-gray-900 dark:text-white"
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            setShowCopyDatePicker(false);
+                            executeCopyFromSource(e.target.value, dateStr);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
               <button onClick={() => setShowCopyDatePicker(false)} className="mt-4 w-full text-center text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">Cancel</button>
             </motion.div>
           </>
