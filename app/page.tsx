@@ -3,18 +3,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { format, addDays, subDays, parseISO, startOfToday } from 'date-fns';
-import { FiCopy, FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp, FiLogOut, FiPlus, FiTrash2, FiRotateCcw, FiEye, FiBriefcase } from 'react-icons/fi';
+import { FiCheck, FiDownload, FiClipboard, FiCreditCard, FiBox, FiPrinter, FiMoon, FiSun, FiAlertCircle, FiChevronDown, FiChevronUp, FiLogOut, FiPlus, FiTrash2, FiRotateCcw, FiEye, FiBriefcase } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   getTasksForDate,
-  copyUnfinishedTasksToToday,
   copyUnfinishedTasksToTargetDate,
+  copySelectedTasksToDate,
   getUnfinishedTasksForDate,
   findPreviousActiveDate,
+  getTaskLists,
+  saveTaskLists,
   getLongTermOrders,
   addPayment,
   addLongTermOrder,
-  copySelectedTasksToDate,
   deleteTask,
   permanentlyDeleteTask,
   restoreTask,
@@ -23,7 +24,7 @@ import {
 } from '../lib/taskService';
 import { auth, signInWithGoogle, signInWithEmail, createAccountWithEmail, logOut, onAuthStateChanged } from '../lib/auth';
 import { db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -53,6 +54,27 @@ const BYPASS_EMAILS = [
   'zuhaib@test.com'
 ];
 
+type TaskListConfig = {
+  key: string;
+  title: string;
+  color: 'blue' | 'teal' | 'emerald' | 'amber' | 'rose' | 'indigo';
+  system?: boolean;
+};
+
+const TASK_LIST_COLORS: Record<TaskListConfig['color'], { border: string; text: string; bg: string }> = {
+  blue: { border: 'border-blue-200', text: 'text-blue-700', bg: 'bg-blue-50' },
+  teal: { border: 'border-teal-200', text: 'text-teal-700', bg: 'bg-teal-50' },
+  emerald: { border: 'border-emerald-200', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+  amber: { border: 'border-amber-200', text: 'text-amber-700', bg: 'bg-amber-50' },
+  rose: { border: 'border-rose-200', text: 'text-rose-700', bg: 'bg-rose-50' },
+  indigo: { border: 'border-indigo-200', text: 'text-indigo-700', bg: 'bg-indigo-50' },
+};
+
+const getDefaultTaskLists = (isAdmin: boolean): TaskListConfig[] => [
+  { key: 'A', title: 'BUSINESS TASK', color: 'blue', system: true },
+  ...(isAdmin ? [{ key: 'E', title: 'DAILY BUSINESS TASK', color: 'teal', system: true } as TaskListConfig] : []),
+];
+
 export default function DailyTaskManager() {
   const [mounted, setMounted] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -69,7 +91,6 @@ export default function DailyTaskManager() {
   const [showInstallBtn, setShowInstallBtn] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [printSelection, setPrintSelection] = useState<Record<string, boolean>>({});
-  const [showCopyConfirm, setShowCopyConfirm] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(true);
   const [longTermOrders, setLongTermOrders] = useState<any[]>([]);
   const [taskFilter, setTaskFilter] = useState('all');
@@ -104,6 +125,8 @@ export default function DailyTaskManager() {
   const [ltoDeliveryDate, setLtoDeliveryDate] = useState('');
   const [showCopyDatePicker, setShowCopyDatePicker] = useState(false);
   const [showGlance, setShowGlance] = useState(false);
+  const [showDemoPopup, setShowDemoPopup] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const [lowTaskPrompt, setLowTaskPrompt] = useState<{
     isOpen: boolean;
     sourceDateStr: string;
@@ -123,54 +146,52 @@ export default function DailyTaskManager() {
       if (user) {
         const lowerEmail = user.email ? user.email.toLowerCase() : '';
         if (lowerEmail && ADMIN_EMAILS.includes(lowerEmail)) {
-          // Admin bypass — no trial, no phone verification
           setAuthUser(user);
           setAccessDenied(false);
-          // setNeedsPhoneVerification(false);
           setTrialExpired(false);
         } else if (user.email && BYPASS_EMAILS.includes(lowerEmail)) {
-          // VIP bypass — keeps their own isolated/private data, but bypasses paywall & phone verification
           setAuthUser(user);
           setAccessDenied(false);
-          // setNeedsPhoneVerification(false);
           setTrialExpired(false);
         } else if (user.email) {
-          // Regular user — check trial
           try {
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            if (!userDoc.exists() || !userDoc.data().verified) {
-              // Needs phone verification
+            let userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (!userDoc.exists()) {
+              const now = new Date().toISOString();
+              await setDoc(doc(db, 'users', user.uid), {
+                createdAt: now,
+                trialStartDate: now,
+              });
+              userDoc = await getDoc(doc(db, 'users', user.uid));
+            }
+            const data = userDoc.data()!;
+            if (data.subscriptionStatus === 'active') {
               setAuthUser(user);
-              // setNeedsPhoneVerification(true);
               setTrialExpired(false);
             } else {
-              // Check trial expiry or active subscription
-              const data = userDoc.data();
-              if (data.subscriptionStatus === 'active') {
-                // Paid user — full access
+              const trialStart = new Date(data.trialStartDate);
+              const now = new Date();
+              const daysPassed = Math.floor((now.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24));
+              if (daysPassed > 365) {
+                setAuthUser(user);
+                setTrialExpired(true);
+              } else {
                 setAuthUser(user);
                 setTrialExpired(false);
-                // setNeedsPhoneVerification(false);
-              } else {
-                const trialStart = new Date(data.trialStartDate);
-                const now = new Date();
-                const daysPassed = Math.floor((now.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24));
-                if (daysPassed > 365) {
-                  setAuthUser(user);
-                  setTrialExpired(true);
-                  // setNeedsPhoneVerification(false);
-                } else {
-                  setAuthUser(user);
-                  setTrialExpired(false);
-                  // Phone verification removed
-                }
+              }
+            }
+            if (data.createdAt) {
+              const createdAt = new Date(data.createdAt);
+              const now = new Date();
+              const daysSinceCreated = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+              if (daysSinceCreated < 3) {
+                setShowDemoPopup(true);
               }
             }
             setAccessDenied(false);
           } catch (err) {
             console.error('Trial check error:', err);
             setAuthUser(user);
-            // Phone verification removed
             setTrialExpired(false);
             setAccessDenied(false);
           }
@@ -183,7 +204,6 @@ export default function DailyTaskManager() {
       } else {
         setAuthUser(null);
         setAccessDenied(false);
-        // Phone verification removed
         setTrialExpired(false);
       }
       setCheckingAuth(false);
@@ -211,6 +231,14 @@ export default function DailyTaskManager() {
     if (savedDesc !== null) {
       setIncludeDescriptions(savedDesc === 'true');
     }
+  }, []);
+
+  // Splash screen timer - show for 2 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2000);
+    return () => clearTimeout(timer);
   }, []);
 
   const handleLogout = () => {
@@ -279,6 +307,43 @@ export default function DailyTaskManager() {
       localStorage.setItem('pwaInstalled', 'true');
     }
     setDeferredPrompt(null);
+  };
+
+  // Task lists state
+  const [taskLists, setTaskLists] = useState<TaskListConfig[]>(() => getDefaultTaskLists(isAdmin));
+
+  // Load task lists from Firestore
+  useEffect(() => {
+    if (!uid) return;
+    const unsub = getTaskLists(uid, getDefaultTaskLists(isAdmin), (lists: TaskListConfig[]) => {
+      setTaskLists(lists);
+    });
+    return () => unsub();
+  }, [uid, isAdmin]);
+
+  const handleAddList = async () => {
+    const title = window.prompt('Enter a name for the new list:');
+    if (!title || !title.trim()) return;
+    const key = 'custom_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
+    const updated = [...taskLists, { key, title: title.trim(), color: 'indigo' as const }];
+    await saveTaskLists(uid, updated);
+  };
+
+  const handleRenameList = async (key: string) => {
+    const list = taskLists.find(l => l.key === key);
+    if (!list || list.system) return;
+    const title = window.prompt('Rename list:', list.title);
+    if (!title || !title.trim() || title.trim() === list.title) return;
+    const updated = taskLists.map(l => l.key === key ? { ...l, title: title.trim() } : l);
+    await saveTaskLists(uid, updated);
+  };
+
+  const handleRemoveList = async (key: string) => {
+    const list = taskLists.find(l => l.key === key);
+    if (!list || list.system) return;
+    if (!window.confirm(`Delete list "${list.title}" and all its tasks?`)) return;
+    const updated = taskLists.filter(l => l.key !== key);
+    await saveTaskLists(uid, updated);
   };
 
   // Fetch tasks
@@ -369,56 +434,7 @@ export default function DailyTaskManager() {
     }
   };
 
-  // Copy previous tasks to currently viewed sheet (dateStr)
-  const handleCopyUnfinished = async () => {
-    // If tasks are selected via checkbox, show date picker for selective copy
-    if (selectedPrintCount > 0) {
-      setShowCopyDatePicker(true);
-      return;
-    }
-    
-    if (!uid || !dateStr) return;
-
-    setIsCopying(true);
-    try {
-      const currentObj = parseISO(dateStr);
-      const prevDateObj = subDays(currentObj, 1);
-      const prevDateStr = format(prevDateObj, 'yyyy-MM-dd');
-
-      const prevUnfinished = await getUnfinishedTasksForDate(uid, prevDateStr);
-      const prevCount = prevUnfinished.length;
-
-      const priorActive = await findPreviousActiveDate(uid, prevDateStr, 7);
-
-      if (prevCount > 5) {
-        await executeCopyFromSource(prevDateStr, dateStr);
-      } else if (prevCount > 0 && prevCount <= 5) {
-        setLowTaskPrompt({
-          isOpen: true,
-          sourceDateStr: prevDateStr,
-          targetDateStr: dateStr,
-          unfinishedTasksCount: prevCount,
-          priorActiveDate: priorActive
-        });
-      } else {
-        if (priorActive) {
-          setLowTaskPrompt({
-            isOpen: true,
-            sourceDateStr: prevDateStr,
-            targetDateStr: dateStr,
-            unfinishedTasksCount: 0,
-            priorActiveDate: priorActive
-          });
-        } else {
-          showToast("No unfinished tasks found on previous days to copy.", "yellow");
-        }
-      }
-    } catch (err: any) {
-      showToast("Error checking previous tasks", "red");
-    } finally {
-      setIsCopying(false);
-    }
-  };
+  // Copy previous tasks to currently viewed sheet (dateStr) — now automated via midnight rollover
 
   const handleCopySelectedToDate = async (targetDateStr: string) => {
     setShowCopyDatePicker(false);
@@ -435,25 +451,6 @@ export default function DailyTaskManager() {
       }
     } catch (err: any) {
       showToast(err?.message || 'Copy failed', 'red');
-    } finally {
-      setIsCopying(false);
-    }
-  };
-
-  const confirmCopy = async () => {
-    if (!dateStr || !selectedDate) return;
-    setShowCopyConfirm(false);
-    setIsCopying(true);
-    try {
-      const result = await copyUnfinishedTasksToToday(uid, dateStr);
-      const copiedCount = result?.copiedCount || 0;
-      const todayDate = new Date();
-      if (copiedCount > 0) {
-        showToast(`${copiedCount} task${copiedCount > 1 ? 's' : ''} copied to Today`, "green");
-      } else {
-        showToast("No new tasks to copy.", "yellow");
-      }
-      setSelectedDate(todayDate);
     } finally {
       setIsCopying(false);
     }
@@ -738,6 +735,14 @@ export default function DailyTaskManager() {
     );
   }
 
+  if (showSplash) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A] flex items-center justify-center">
+        <img src="/main.png" alt="Daily Task Manager" className="w-48 h-48 object-contain" />
+      </div>
+    );
+  }
+
   if (accessDenied) {
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4">
@@ -1001,6 +1006,13 @@ export default function DailyTaskManager() {
               </AnimatePresence>
             </div>
             <button
+              onClick={handleAddList}
+              className="flex items-center gap-1.5 text-sm font-semibold bg-white dark:bg-[#1E293B] border-2 border-dashed border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 px-3 py-2 rounded-xl hover:border-indigo-400 hover:text-indigo-600 dark:hover:border-indigo-500 dark:hover:text-indigo-400 transition-colors"
+              title="Add new task list"
+            >
+              <FiPlus size={16} /> <span className="hidden sm:inline">Add List</span>
+            </button>
+            <button
               onClick={handleLogout}
               className="p-2.5 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#273549] transition-all duration-300"
               title="Sign Out"
@@ -1071,10 +1083,6 @@ export default function DailyTaskManager() {
               <FiPrinter size={16} /> <span className="hidden sm:inline">Print {taskFilter !== 'all' ? taskFilter.charAt(0).toUpperCase() + taskFilter.slice(1) : 'Filtered'}</span>
               {taskFilter !== 'all' && <span className="bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-md">{filteredPrintCount}</span>}
             </button>
-            <button onClick={handleCopyUnfinished} disabled={isCopying} className="flex items-center gap-2 text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-2.5 rounded-xl disabled:opacity-50 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">
-              {isCopying ? <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" /> : <FiCopy size={16} />}
-              <span className="hidden sm:inline">Copy Previous Tasks</span>
-            </button>
             {betaFeatures && (
             <button onClick={() => setShowGlance(true)} className="flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-2.5 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">
               <FiEye size={16} />
@@ -1103,6 +1111,7 @@ export default function DailyTaskManager() {
                 printSelection={printSelection} onPrintToggle={handlePrintToggle} onToast={showToast}
                 filter={taskFilter} onFilterChange={setTaskFilter}
                 isCalendarOpen={isCalendarOpen}
+                canRename={false} onRename={function() {}} canRemove={false} onRemove={function() {}}
               />
 
               {/* ================================================================
@@ -1136,6 +1145,34 @@ export default function DailyTaskManager() {
                   isCalendarOpen={isCalendarOpen}
                 />
               )}
+
+              {taskLists.filter(l => !l.system).map(list => {
+                const listTasks = tasks.filter(t => t.section === list.key);
+                const col = TASK_LIST_COLORS[list.color] || TASK_LIST_COLORS.indigo;
+                return (
+                  <TaskSection
+                    key={list.key}
+                    title={list.title}
+                    icon={FiClipboard}
+                    colorClass={{ border: col.border, text: col.text }}
+                    bgClass={col.bg}
+                    tasks={listTasks}
+                    dateStr={dateStr}
+                    sectionKey={list.key}
+                    onAddClick={() => setActiveSection(list.key)}
+                    printSelection={printSelection}
+                    onPrintToggle={handlePrintToggle}
+                    onToast={showToast}
+                    filter={taskFilter}
+                    onFilterChange={setTaskFilter}
+                    isCalendarOpen={isCalendarOpen}
+                    canRename={true}
+                    onRename={function() { handleRenameList(list.key); }}
+                    canRemove={true}
+                    onRemove={function() { handleRemoveList(list.key); }}
+                  />
+                );
+              })}
             </div>
 
             <div className="lg:col-span-1 flex flex-col gap-6 h-full">
@@ -1249,14 +1286,6 @@ export default function DailyTaskManager() {
               </AnimatePresence>
             </div>
 
-            <button
-              onClick={handleCopyUnfinished}
-              disabled={isCopying}
-              className="h-8 px-2.5 rounded-md bg-blue-600 text-white flex items-center gap-1 hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
-            >
-              {isCopying ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" /> : <FiCopy size={14} />}
-              <span className="text-[10px] font-bold uppercase">Copy</span>
-            </button>
           </div>
         </div>
 
@@ -1361,9 +1390,15 @@ export default function DailyTaskManager() {
                         await addPayment(uid, dateStr, { name: '', amount: '' });
                         showToast('Payment entry added', 'yellow');
                       }}
-                      className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-tighter text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549]"
+                      className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-tighter text-gray-800 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-[#273549] border-b border-gray-100 dark:border-[#334155]"
                     >
                       Add Payment
+                    </button>
+                    <button
+                      onClick={() => { setMobileAddMenuOpen(false); handleAddList(); }}
+                      className="w-full text-left px-3 py-2 text-[10px] font-bold uppercase tracking-tighter text-gray-800 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-[#273549]"
+                    >
+                      Add List
                     </button>
                   </motion.div>
                 </>
@@ -1397,6 +1432,7 @@ export default function DailyTaskManager() {
               filter={taskFilter}
               onFilterChange={setTaskFilter}
               isCalendarOpen={isCalendarOpen}
+              canRename={false} onRename={function() {}} canRemove={false} onRemove={function() {}}
             />
 
             {/* ================================================================
@@ -1423,6 +1459,34 @@ export default function DailyTaskManager() {
                 isCalendarOpen={isCalendarOpen}
               />
             )}
+
+            {taskLists.filter(l => !l.system).map(list => {
+              const listTasks = tasks.filter(t => t.section === list.key);
+              const col = TASK_LIST_COLORS[list.color] || TASK_LIST_COLORS.indigo;
+              return (
+                <TaskSection
+                  key={list.key}
+                  title={list.title}
+                  icon={FiClipboard}
+                  colorClass={{ border: col.border, text: col.text }}
+                  bgClass={col.bg}
+                  tasks={listTasks}
+                  dateStr={dateStr}
+                  sectionKey={list.key}
+                  onAddClick={() => setActiveSection(list.key)}
+                  printSelection={printSelection}
+                  onPrintToggle={handlePrintToggle}
+                  onToast={showToast}
+                  filter={taskFilter}
+                  onFilterChange={setTaskFilter}
+                  isCalendarOpen={isCalendarOpen}
+                  canRename={true}
+                  onRename={function() { handleRenameList(list.key); }}
+                  canRemove={true}
+                  onRemove={function() { handleRemoveList(list.key); }}
+                />
+              );
+            })}
 
             {/* Compact bottom: Payments + Long Term Orders */}
             <div className="flex flex-col gap-1.5 mt-1">
@@ -1964,24 +2028,6 @@ export default function DailyTaskManager() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {showCopyConfirm && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setShowCopyConfirm(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-[#1E293B] rounded-2xl p-6 shadow-2xl z-50 w-[90%] max-w-sm">
-              <h3 className="text-lg font-bold mb-4">Copy Unfinished Tasks</h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
-                Copy {tasks.filter(t => t.color !== 'green').length} unchecked tasks from [{selectedDate ? format(selectedDate, 'd MMM') : ''}] to Today [{format(new Date(), 'd MMM')}]?
-              </p>
-              <div className="flex gap-3 justify-end">
-                <button onClick={() => setShowCopyConfirm(false)} className="px-4 py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-[#273549] rounded-xl transition-colors">Cancel</button>
-                <button onClick={confirmCopy} className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-colors">Copy</button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {selectedDailyTasksCount > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 50, x: '-50%' }}
@@ -2039,6 +2085,49 @@ export default function DailyTaskManager() {
           {toastMessage}
         </motion.div>
       )}</AnimatePresence>
+
+      <AnimatePresence>
+        {showDemoPopup && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80]"
+              onClick={() => setShowDemoPopup(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: '-50%', x: '-50%' }}
+              animate={{ opacity: 1, scale: 1, y: '-50%', x: '-50%' }}
+              exit={{ opacity: 0, scale: 0.9, y: '-50%', x: '-50%' }}
+              className="fixed top-1/2 left-1/2 bg-white dark:bg-[#1E293B] rounded-2xl p-6 shadow-2xl z-[90] w-[92%] max-w-sm text-center space-y-4 border border-gray-200 dark:border-gray-700"
+            >
+              <div className="text-5xl mb-2">📞</div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                Welcome to Daily Task Manager!
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Get a free demo of the app. Call us at:
+              </p>
+              <a
+                href="tel:+919044379748"
+                className="block text-2xl font-black text-blue-600 dark:text-blue-400 hover:underline py-2"
+              >
+                9044379748
+              </a>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Available for the first 3 days of your account.
+              </p>
+              <button
+                onClick={() => setShowDemoPopup(false)}
+                className="w-full mt-2 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors"
+              >
+                Got it!
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <GlanceModal
         isOpen={showGlance}
