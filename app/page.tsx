@@ -126,7 +126,6 @@ export default function DailyTaskManager() {
   const [showCopyDatePicker, setShowCopyDatePicker] = useState(false);
   const [showGlance, setShowGlance] = useState(false);
   const [showDemoPopup, setShowDemoPopup] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
   const [lowTaskPrompt, setLowTaskPrompt] = useState<{
     isOpen: boolean;
     sourceDateStr: string;
@@ -231,14 +230,6 @@ export default function DailyTaskManager() {
     if (savedDesc !== null) {
       setIncludeDescriptions(savedDesc === 'true');
     }
-  }, []);
-
-  // Splash screen timer - show for 2 seconds
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2000);
-    return () => clearTimeout(timer);
   }, []);
 
   const handleLogout = () => {
@@ -726,14 +717,6 @@ export default function DailyTaskManager() {
   const sectionLabels: Record<string, string> = { A: 'Daily', B: 'Daily', C: 'Payment', D: 'Long-Term', E: 'Business' };
   const colorLabels: Record<string, string> = { red: 'Pending', yellow: 'In Progress', green: 'Done' };
   const toastColorStyles: Record<string, string> = { red: 'bg-red-600', yellow: 'bg-yellow-500', green: 'bg-green-600', gray: 'bg-gray-900 dark:bg-gray-700' };
-
-  if (showSplash) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A] flex items-center justify-center">
-        <img src="/main.png" alt="Daily Task Manager" className="w-48 h-48 object-contain" />
-      </div>
-    );
-  }
 
   if (!mounted || checkingAuth || !selectedDate) {
     return (
