@@ -1,5 +1,5 @@
 {
-  "packageId": "shop.businesstask.twa",
+  "packageId": "com.business.com",
   "host": "businesstask.shop",
   "name": "Daily Task Manager",
   "launcherName": "DailyTasks",
@@ -8,8 +8,8 @@
   "backgroundColor": "#0F172A",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://businesstask.shop/main.png",
-  "maskableIconUrl": "https://businesstask.shop/main.png",
+  "iconUrl": "https://businesstask.shop/main-square.png",
+  "maskableIconUrl": "https://businesstask.shop/main-square.png",
   "appVersionName": "1.0.0",
   "appVersionCode": 1,
   "shortcuts": [],
