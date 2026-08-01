@@ -1119,7 +1119,6 @@ export default function DailyTaskManager() {
                 printSelection={printSelection} onPrintToggle={handlePrintToggle} onToast={showToast}
                 filter={taskFilter} onFilterChange={setTaskFilter}
                 isCalendarOpen={isCalendarOpen}
-                canRename={false} onRename={function() {}} canRemove={false} onRemove={function() {}}
               />
 
               {/* ================================================================
