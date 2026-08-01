@@ -29,9 +29,9 @@ export default function TaskSection({
   filter = 'all',
   onFilterChange,
   isCalendarOpen = false,
-  onRename = null,
+  onRename = () => {},
   canRename = false,
-  onRemove = null,
+  onRemove = () => {},
   canRemove = false
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
