@@ -727,18 +727,18 @@ export default function DailyTaskManager() {
   const colorLabels: Record<string, string> = { red: 'Pending', yellow: 'In Progress', green: 'Done' };
   const toastColorStyles: Record<string, string> = { red: 'bg-red-600', yellow: 'bg-yellow-500', green: 'bg-green-600', gray: 'bg-gray-900 dark:bg-gray-700' };
 
-  if (!mounted || checkingAuth || !selectedDate) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-      </div>
-    );
-  }
-
   if (showSplash) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A] flex items-center justify-center">
         <img src="/main.png" alt="Daily Task Manager" className="w-48 h-48 object-contain" />
+      </div>
+    );
+  }
+
+  if (!mounted || checkingAuth || !selectedDate) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0F172A] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
       </div>
     );
   }
@@ -822,9 +822,7 @@ export default function DailyTaskManager() {
           transition={{ duration: 0.5, ease: 'easeOut' }}
           className="max-w-sm w-full mx-4 flex flex-col items-center text-center"
         >
-          <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-blue-600/20">
-            <span className="text-2xl">📋</span>
-          </div>
+          <img src="/main.png" alt="Daily Task Manager" className="w-14 h-14 rounded-2xl object-cover mb-6 shadow-lg shadow-blue-600/20" />
           <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Daily Task Manager</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-8">Your business, organized.</p>
 
@@ -913,6 +911,16 @@ export default function DailyTaskManager() {
             <Link href="/privacy" className="text-blue-600 dark:text-blue-400 hover:underline">
               Privacy Policy
             </Link>
+          </div>
+
+          <div className="hidden lg:flex mt-8 flex-col items-center gap-3 p-4 bg-white dark:bg-[#1E293B] rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm">
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Get the App</p>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('https://play.google.com/store/apps/details?id=com.business.com&hl=en_IN')}`}
+              alt="Play Store QR Code"
+              className="w-[150px] h-[150px] rounded-lg"
+            />
+            <p className="text-[10px] text-gray-400 dark:text-gray-500">Scan to download on Android</p>
           </div>
         </motion.div>
       </div>
