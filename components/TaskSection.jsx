@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiChevronDown, FiChevronUp, FiPlus } from 'react-icons/fi';
+import { FiChevronDown, FiChevronUp, FiEdit2, FiPlus, FiTrash2 } from 'react-icons/fi';
 import TaskRow from './TaskRow';
 import MobileTaskCard from './MobileTaskCard';
 import OutstandingSheet from './OutstandingSheet';
@@ -28,7 +28,11 @@ export default function TaskSection({
   onToast,
   filter = 'all',
   onFilterChange,
-  isCalendarOpen = false
+  isCalendarOpen = false,
+  onRename,
+  canRename = false,
+  onRemove,
+  canRemove = false
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [viewMode, setViewMode] = useState('tasks'); // 'tasks' | 'priority' | 'outstanding'
@@ -141,6 +145,26 @@ export default function TaskSection({
           )}
         </div>
         <div className="flex items-center gap-2">
+          {canRemove && onRemove != null && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRemove(); }}
+              title="Delete list"
+              aria-label="Delete list"
+              className="p-2 rounded-lg bg-white text-red-600 dark:bg-gray-800 dark:text-red-400 shadow-sm border border-gray-200 dark:border-gray-600 hover:bg-red-50 dark:hover:bg-red-900/30"
+            >
+              <FiTrash2 size={15} />
+            </button>
+          )}
+          {canRename && onRename != null && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onRename(); }}
+              title="Rename list"
+              aria-label="Rename list"
+              className="p-2 rounded-lg bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-200 shadow-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50"
+            >
+              <FiEdit2 size={15} />
+            </button>
+          )}
           <button 
             ref={headerButtonRef}
             onClick={(e) => { e.stopPropagation(); onAddClick(); }}
